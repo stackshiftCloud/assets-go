@@ -36,6 +36,19 @@ type MailTimelineItem struct {
 	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
+type MailWebhookReplayRequest struct {
+	EventIDs       []string `json:"eventIds"`
+	IdempotencyKey string   `json:"-"`
+}
+
+type MailWebhookReplay struct {
+	ID         string                `json:"id"`
+	WebhookID  string                `json:"webhookId"`
+	EventIDs   []string              `json:"eventIds"`
+	Deliveries []MailWebhookDelivery `json:"deliveries"`
+	CreatedAt  time.Time             `json:"createdAt"`
+}
+
 type MailWebhook struct {
 	ID            string     `json:"id"`
 	URL           string     `json:"url"`

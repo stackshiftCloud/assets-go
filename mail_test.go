@@ -56,9 +56,9 @@ func TestMailMessagesAndPublicErrors(t *testing.T) {
 			case strings.Contains(req.URL.Path, "/logs"):
 				return jsonResponse(http.StatusOK, `{"data":[{"level":"info","event":"mail.message.queued","message":"queued","createdAt":"2026-05-08T00:00:00Z"}]}`), nil
 			case strings.HasSuffix(req.URL.Path, "/msg_123"):
-				return jsonResponse(http.StatusOK, `{"id":"msg_123","from":{"email":"noreply@mail.stackshift.cloud"},"to":["ada@example.com"],"cc":[],"bcc":[],"subject":"Welcome","status":"sent","createdAt":"2026-05-08T00:00:00Z"}`), nil
+				return jsonResponse(http.StatusOK, `{"id":"msg_123","from":{"email":"noreply@mail.stackshift.cloud"},"to":["ada@example.com"],"cc":[],"bcc":[],"subject":"Welcome","status":"mta_accepted","createdAt":"2026-05-08T00:00:00Z"}`), nil
 			case strings.HasSuffix(req.URL.Path, "/mail/messages"):
-				return jsonResponse(http.StatusOK, `{"data":[{"id":"msg_123","from":"StackShift <noreply@mail.stackshift.cloud>","to":["ada@example.com"],"subject":"Welcome","status":"sent","createdAt":"2026-05-08T00:00:00Z"}]}`), nil
+				return jsonResponse(http.StatusOK, `{"data":[{"id":"msg_123","from":"StackShift <noreply@mail.stackshift.cloud>","to":["ada@example.com"],"subject":"Welcome","status":"mta_accepted","createdAt":"2026-05-08T00:00:00Z"}]}`), nil
 			default:
 				return jsonResponse(http.StatusBadRequest, `{"error":{"code":"invalid_recipient","message":"Invalid recipient."}}`), nil
 			}
@@ -67,12 +67,12 @@ func TestMailMessagesAndPublicErrors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	list, err := client.Mail.Messages.List(context.Background(), MailMessageListOptions{Status: "sent", Limit: 20})
+	list, err := client.Mail.Messages.List(context.Background(), MailMessageListOptions{Status: "mta_accepted", Limit: 20})
 	if err != nil || len(list.Data) != 1 {
 		t.Fatalf("list=%+v err=%v", list, err)
 	}
 	message, err := client.Mail.Messages.Get(context.Background(), "msg_123")
-	if err != nil || message.Status != "sent" {
+	if err != nil || message.Status != "mta_accepted" {
 		t.Fatalf("message=%+v err=%v", message, err)
 	}
 	attempts, err := client.Mail.Messages.Attempts(context.Background(), "msg_123")
@@ -249,7 +249,7 @@ func jsonResponse(status int, body string) *http.Response {
 }
 
 func domainJSON(status string) string {
-	return `{"id":"domain_123","domain":"acme.com","status":"` + status + `","spfStatus":"verified","dkimStatus":"verified","dmarcStatus":"missing","returnPathStatus":"verified","createdAt":"2026-05-08T00:00:00Z","verifiedAt":null,"records":[{"type":"TXT","name":"acme.com","value":"v=spf1 include:_spf.stackshift.email ~all","status":"verified","required":true}]}`
+	return `{"id":"domain_123","domain":"acme.com","status":"` + status + `","spfStatus":"verified","dkimStatus":"verified","dmarcStatus":"missing","returnPathStatus":"verified","createdAt":"2026-05-08T00:00:00Z","verifiedAt":null,"records":[{"type":"TXT","name":"acme.com","value":"v=spf1 include:_spf.stackshift.cloud ~all","status":"verified","required":true}]}`
 }
 
 func suppressionJSON(reason, source string) string {

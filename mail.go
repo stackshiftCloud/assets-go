@@ -17,6 +17,10 @@ type MailClient struct {
 	Templates    *MailTemplatesClient
 	Events       *MailEventsClient
 	Webhooks     *MailWebhooksClient
+	Streams      *MailStreamsClient
+	Audiences    *MailAudiencesClient
+	Campaigns    *MailCampaignsClient
+	Exports      *MailExportsClient
 	Limits       *MailLimitsClient
 	Reputation   *MailReputationClient
 	Scheduled    *MailScheduledClient
@@ -50,6 +54,10 @@ type MailEventsClient struct {
 }
 
 type MailWebhooksClient struct {
+	client *Client
+}
+
+type MailStreamsClient struct {
 	client *Client
 }
 

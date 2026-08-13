@@ -29,6 +29,9 @@ type MailSendRequest struct {
 	Text           string                `json:"text,omitempty"`
 	IdempotencyKey string                `json:"idempotencyKey,omitempty"`
 	Attachments    []MailAttachmentInput `json:"attachments,omitempty"`
+	Headers        map[string]string     `json:"headers,omitempty"`
+	Tags           map[string]string     `json:"tags,omitempty"`
+	Stream         string                `json:"stream,omitempty"`
 }
 
 type MailSendResponse struct {
@@ -74,14 +77,14 @@ type MailMessageListOptions struct {
 }
 
 type MailMessageSummary struct {
-	ID        string     `json:"id"`
-	From      string     `json:"from"`
-	To        []string   `json:"to"`
-	Subject   string     `json:"subject"`
-	Status    string     `json:"status"`
-	CreatedAt time.Time  `json:"createdAt"`
-	QueuedAt  *time.Time `json:"queuedAt,omitempty"`
-	SentAt    *time.Time `json:"sentAt,omitempty"`
+	ID            string     `json:"id"`
+	From          string     `json:"from"`
+	To            []string   `json:"to"`
+	Subject       string     `json:"subject"`
+	Status        string     `json:"status"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	QueuedAt      *time.Time `json:"queuedAt,omitempty"`
+	MTAAcceptedAt *time.Time `json:"mtaAcceptedAt,omitempty"`
 }
 
 type MailMessageListResult struct {
@@ -90,29 +93,72 @@ type MailMessageListResult struct {
 }
 
 type MailMessage struct {
-	ID                  string      `json:"id"`
-	From                MailAddress `json:"from"`
-	To                  []string    `json:"to"`
-	Cc                  []string    `json:"cc"`
-	Bcc                 []string    `json:"bcc"`
-	ReplyTo             *string     `json:"replyTo,omitempty"`
-	Subject             string      `json:"subject"`
-	HTML                *string     `json:"html,omitempty"`
-	Text                *string     `json:"text,omitempty"`
-	Status              string      `json:"status"`
-	ErrorCode           *string     `json:"errorCode,omitempty"`
-	ErrorMessage        *string     `json:"errorMessage,omitempty"`
-	CreatedAt           time.Time   `json:"createdAt"`
-	QueuedAt            *time.Time  `json:"queuedAt,omitempty"`
-	SendingAt           *time.Time  `json:"sendingAt,omitempty"`
-	SentAt              *time.Time  `json:"sentAt,omitempty"`
-	FailedAt            *time.Time  `json:"failedAt,omitempty"`
-	BouncedAt           *time.Time  `json:"bouncedAt,omitempty"`
-	SuppressedAt        *time.Time  `json:"suppressedAt,omitempty"`
-	BounceType          *string     `json:"bounceType,omitempty"`
-	BounceReason        *string     `json:"bounceReason,omitempty"`
-	FinalSMTPStatusCode *string     `json:"finalSmtpStatusCode,omitempty"`
-	FinalSMTPResponse   *string     `json:"finalSmtpResponse,omitempty"`
+	ID                  string               `json:"id"`
+	From                MailAddress          `json:"from"`
+	To                  []string             `json:"to"`
+	Cc                  []string             `json:"cc"`
+	Bcc                 []string             `json:"bcc"`
+	ReplyTo             *string              `json:"replyTo,omitempty"`
+	Subject             string               `json:"subject"`
+	HTML                *string              `json:"html,omitempty"`
+	Text                *string              `json:"text,omitempty"`
+	Status              string               `json:"status"`
+	ErrorCode           *string              `json:"errorCode,omitempty"`
+	ErrorMessage        *string              `json:"errorMessage,omitempty"`
+	CreatedAt           time.Time            `json:"createdAt"`
+	QueuedAt            *time.Time           `json:"queuedAt,omitempty"`
+	SendingAt           *time.Time           `json:"sendingAt,omitempty"`
+	MTAAcceptedAt       *time.Time           `json:"mtaAcceptedAt,omitempty"`
+	FailedAt            *time.Time           `json:"failedAt,omitempty"`
+	BouncedAt           *time.Time           `json:"bouncedAt,omitempty"`
+	SuppressedAt        *time.Time           `json:"suppressedAt,omitempty"`
+	BounceType          *string              `json:"bounceType,omitempty"`
+	BounceReason        *string              `json:"bounceReason,omitempty"`
+	FinalSMTPStatusCode *string              `json:"finalSmtpStatusCode,omitempty"`
+	FinalSMTPResponse   *string              `json:"finalSmtpResponse,omitempty"`
+	Recipients          []MailRecipient      `json:"recipients,omitempty"`
+	RecipientSummary    MailRecipientSummary `json:"recipientSummary"`
+	Headers             map[string]string    `json:"headers,omitempty"`
+	Tags                map[string]string    `json:"tags,omitempty"`
+	Stream              string               `json:"stream,omitempty"`
+	StreamType          string               `json:"streamType,omitempty"`
+}
+
+type MailRecipient struct {
+	ID                string     `json:"id"`
+	MessageID         string     `json:"messageId"`
+	Kind              string     `json:"kind"`
+	Email             string     `json:"email"`
+	Status            string     `json:"status"`
+	RFCMessageID      *string    `json:"rfcMessageId,omitempty"`
+	PostfixQueueID    *string    `json:"postfixQueueId,omitempty"`
+	RemoteMX          *string    `json:"remoteMx,omitempty"`
+	Provider          *string    `json:"provider,omitempty"`
+	SMTPStatus        *string    `json:"smtpStatus,omitempty"`
+	EnhancedStatus    *string    `json:"enhancedStatus,omitempty"`
+	SMTPResponse      *string    `json:"smtpResponse,omitempty"`
+	LatencyMS         *int64     `json:"latencyMs,omitempty"`
+	Disposition       *string    `json:"disposition,omitempty"`
+	BounceCategory    *string    `json:"bounceCategory,omitempty"`
+	SuppressionAction *string    `json:"suppressionAction,omitempty"`
+	CreatedAt         time.Time  `json:"createdAt"`
+	UpdatedAt         time.Time  `json:"updatedAt"`
+	MTAAcceptedAt     *time.Time `json:"mtaAcceptedAt,omitempty"`
+	DeliveredAt       *time.Time `json:"deliveredAt,omitempty"`
+	BouncedAt         *time.Time `json:"bouncedAt,omitempty"`
+	ComplainedAt      *time.Time `json:"complainedAt,omitempty"`
+}
+
+type MailRecipientSummary struct {
+	Queued      int `json:"queued"`
+	Sending     int `json:"sending"`
+	MTAAccepted int `json:"mtaAccepted"`
+	Delayed     int `json:"delayed"`
+	Delivered   int `json:"delivered"`
+	Bounced     int `json:"bounced"`
+	Failed      int `json:"failed"`
+	Suppressed  int `json:"suppressed"`
+	Complained  int `json:"complained"`
 }
 
 type MailSendAttempt struct {

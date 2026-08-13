@@ -45,7 +45,7 @@ Inspect message status:
 
 ```go
 messages, err := client.Mail.Messages.List(context.Background(), stackshift.MailMessageListOptions{
-	Status: "sent",
+	Status: "mta_accepted",
 	Limit:  20,
 })
 if err != nil {
@@ -55,7 +55,7 @@ if err != nil {
 detail, err := client.Mail.Messages.Get(context.Background(), messages.Data[0].ID)
 ```
 
-In this MVP, `sent` means the message was accepted by StackShift's outbound MTA. It does not mean inbox delivery, opens, clicks, or spam placement. A `sent` message can later become `bounced`.
+`mta_accepted` means StackShift's outbound MTA accepted the message for delivery. Recipient records are authoritative after handoff: remote-MX acceptance becomes `delivered`, temporary rejection becomes `delayed`, and final rejection becomes `bounced` or `failed`. None of these states claim inbox placement or human receipt.
 
 ## Events and webhooks
 

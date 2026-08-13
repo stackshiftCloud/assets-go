@@ -27,6 +27,12 @@ func TestMailAdvancedClients(t *testing.T) {
 				return jsonResponse(http.StatusAccepted, `{"id":"batch_tpl_123","status":"queued","messageCount":1}`), nil
 			case strings.HasSuffix(req.URL.Path, "/mail/batch"):
 				return jsonResponse(http.StatusAccepted, `{"id":"batch_123","status":"queued","messageCount":1}`), nil
+			case strings.HasSuffix(req.URL.Path, "/mail/batches/batch_123/items"):
+				return jsonResponse(http.StatusOK, `{"data":[{"id":"item_123","batchId":"batch_123","messageId":"msg_123","recipientEmail":"ada@example.com","status":"accepted","recipients":[{"id":"rcpt_123","messageId":"msg_123","kind":"to","email":"ada@example.com","status":"delivered"}]}]}`), nil
+			case strings.HasSuffix(req.URL.Path, "/mail/batches/batch_123"):
+				return jsonResponse(http.StatusOK, `{"id":"batch_123","status":"completed","messageCount":1}`), nil
+			case strings.HasSuffix(req.URL.Path, "/mail/batches"):
+				return jsonResponse(http.StatusOK, `{"data":[{"id":"batch_123","status":"completed","messageCount":1}]}`), nil
 			case req.Method == http.MethodPost && strings.HasSuffix(req.URL.Path, "/mail/inbound/domains"):
 				return jsonResponse(http.StatusCreated, `{"id":"ind_123","domain":"inbound.example.com","status":"pending"}`), nil
 			case req.Method == http.MethodGet && strings.HasSuffix(req.URL.Path, "/mail/inbound/domains"):
@@ -38,7 +44,7 @@ func TestMailAdvancedClients(t *testing.T) {
 			case strings.HasSuffix(req.URL.Path, "/mail/inbound/messages"):
 				return jsonResponse(http.StatusOK, `{"data":[{"id":"inm_123","fromEmail":"ada@example.com","toEmails":["support@example.com"]}]}`), nil
 			case strings.HasSuffix(req.URL.Path, "/mail/analytics"):
-				return jsonResponse(http.StatusOK, `{"summary":{"sent":1},"series":[{"bucket":"2026-05-11","sent":1}]}`), nil
+				return jsonResponse(http.StatusOK, `{"summary":{"mtaAccepted":1},"series":[{"bucket":"2026-05-11","mtaAccepted":1}]}`), nil
 			default:
 				return jsonResponse(http.StatusNotFound, `{"error":{"code":"not_found","message":"Not found."}}`), nil
 			}
@@ -70,6 +76,15 @@ func TestMailAdvancedClients(t *testing.T) {
 	if batch, err := client.Mail.Batch.SendTemplate(context.Background(), MailBatchTemplateRequest{Template: "welcome", From: "StackShift <noreply@mail.stackshift.cloud>", Recipients: []MailBatchTemplateRecipient{{To: "ada@example.com"}}}); err != nil || batch.ID != "batch_tpl_123" {
 		t.Fatalf("template batch=%+v err=%v", batch, err)
 	}
+	if batches, err := client.Mail.Batch.List(context.Background()); err != nil || len(batches.Data) != 1 {
+		t.Fatalf("batches=%+v err=%v", batches, err)
+	}
+	if batch, err := client.Mail.Batch.Get(context.Background(), "batch_123"); err != nil || batch.Status != "completed" {
+		t.Fatalf("batch=%+v err=%v", batch, err)
+	}
+	if items, err := client.Mail.Batch.Items(context.Background(), "batch_123"); err != nil || len(items.Data) != 1 || items.Data[0].Recipients[0].Status != "delivered" {
+		t.Fatalf("batch items=%+v err=%v", items, err)
+	}
 	if domain, err := client.Mail.Inbound.Domains.Create(context.Background(), "inbound.example.com"); err != nil || domain.ID != "ind_123" {
 		t.Fatalf("inbound domain=%+v err=%v", domain, err)
 	}
@@ -86,7 +101,7 @@ func TestMailAdvancedClients(t *testing.T) {
 		t.Fatalf("inbound message=%+v err=%v", message, err)
 	}
 	analytics, err := client.Mail.Analytics.Get(context.Background(), MailAnalyticsOptions{Range: "7d", Interval: "day", Domain: "example.com"})
-	if err != nil || analytics.Summary["sent"] != 1 {
+	if err != nil || analytics.Summary["mtaAccepted"] != 1 {
 		t.Fatalf("analytics=%+v err=%v", analytics, err)
 	}
 	if !strings.Contains(calls[len(calls)-1], "domain=example.com") {

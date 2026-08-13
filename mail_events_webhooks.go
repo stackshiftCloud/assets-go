@@ -38,12 +38,28 @@ func (m *MailEventsClient) Get(ctx context.Context, eventID string) (*MailEvent,
 }
 
 func (m *MailMessagesClient) Timeline(ctx context.Context, messageID string) ([]MailTimelineItem, error) {
+	return m.TimelineForRecipient(ctx, messageID, "")
+}
+
+func (m *MailMessagesClient) TimelineForRecipient(ctx context.Context, messageID, recipient string) ([]MailTimelineItem, error) {
 	var result struct {
 		Data []MailTimelineItem `json:"data"`
 	}
 	path := "/mail/messages/" + url.PathEscape(messageID) + "/timeline"
+	if recipient != "" {
+		path += "?recipient=" + url.QueryEscape(recipient)
+	}
 	err := m.client.mailRequest(ctx, http.MethodGet, path, nil, &result)
 	return result.Data, err
+}
+
+func (m *MailWebhooksClient) Replay(ctx context.Context, webhookID string, input MailWebhookReplayRequest) (*MailWebhookReplay, error) {
+	var result MailWebhookReplay
+	path := "/mail/webhooks/" + url.PathEscape(webhookID) + "/replay"
+	headers := map[string]string{"Idempotency-Key": input.IdempotencyKey}
+	body := map[string]any{"eventIds": input.EventIDs}
+	err := m.client.mailRequestWithHeaders(ctx, http.MethodPost, path, body, headers, &result)
+	return &result, err
 }
 
 func (m *MailWebhooksClient) Create(ctx context.Context, input MailWebhookCreateRequest) (*MailWebhookCreateResponse, error) {

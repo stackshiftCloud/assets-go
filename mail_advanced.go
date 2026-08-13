@@ -54,6 +54,24 @@ func (m *MailBatchClient) SendTemplate(ctx context.Context, input MailBatchTempl
 	return &result, err
 }
 
+func (m *MailBatchClient) List(ctx context.Context) (*MailBatchListResult, error) {
+	var result MailBatchListResult
+	err := m.client.mailRequest(ctx, http.MethodGet, "/mail/batches", nil, &result)
+	return &result, err
+}
+
+func (m *MailBatchClient) Get(ctx context.Context, id string) (*MailBatch, error) {
+	var result MailBatch
+	err := m.client.mailRequest(ctx, http.MethodGet, "/mail/batches/"+url.PathEscape(id), nil, &result)
+	return &result, err
+}
+
+func (m *MailBatchClient) Items(ctx context.Context, id string) (*MailBatchItemListResult, error) {
+	var result MailBatchItemListResult
+	err := m.client.mailRequest(ctx, http.MethodGet, "/mail/batches/"+url.PathEscape(id)+"/items", nil, &result)
+	return &result, err
+}
+
 func (m *MailInboundDomainsClient) Create(ctx context.Context, domain string) (*MailInboundDomain, error) {
 	var result MailInboundDomain
 	err := m.client.mailRequest(ctx, http.MethodPost, "/mail/inbound/domains", map[string]string{"domain": domain}, &result)

@@ -7,6 +7,8 @@ type MailAttachmentInput struct {
 	UploadID    string `json:"uploadId,omitempty"`
 	Filename    string `json:"filename"`
 	ContentType string `json:"contentType,omitempty"`
+	Disposition string `json:"disposition,omitempty"`
+	ContentID   string `json:"contentId,omitempty"`
 }
 
 type MailScheduledCreateRequest struct {
@@ -19,16 +21,19 @@ type MailScheduledCreateRequest struct {
 	Data           map[string]any        `json:"data,omitempty"`
 	IdempotencyKey string                `json:"idempotencyKey,omitempty"`
 	Attachments    []MailAttachmentInput `json:"attachments,omitempty"`
+	Headers        map[string]string     `json:"headers,omitempty"`
+	Tags           map[string]string     `json:"tags,omitempty"`
+	Stream         string                `json:"stream,omitempty"`
 }
 
 type MailScheduledMessage struct {
-	ID         string     `json:"id"`
-	Status     string     `json:"status"`
-	SendAt     time.Time  `json:"sendAt"`
-	MessageID  *string    `json:"messageId,omitempty"`
-	CreatedAt  *time.Time `json:"createdAt,omitempty"`
-	CanceledAt *time.Time `json:"canceledAt,omitempty"`
-	SentAt     *time.Time `json:"sentAt,omitempty"`
+	ID           string     `json:"id"`
+	Status       string     `json:"status"`
+	SendAt       time.Time  `json:"sendAt"`
+	MessageID    *string    `json:"messageId,omitempty"`
+	CreatedAt    *time.Time `json:"createdAt,omitempty"`
+	CanceledAt   *time.Time `json:"canceledAt,omitempty"`
+	DispatchedAt *time.Time `json:"dispatchedAt,omitempty"`
 }
 
 type MailScheduledListResult struct {
@@ -51,12 +56,38 @@ type MailBatchTemplateRequest struct {
 	VersionID  string                       `json:"versionId,omitempty"`
 	From       any                          `json:"from"`
 	Recipients []MailBatchTemplateRecipient `json:"recipients"`
+	Headers    map[string]string            `json:"headers,omitempty"`
+	Tags       map[string]string            `json:"tags,omitempty"`
+	Stream     string                       `json:"stream,omitempty"`
 }
 
 type MailBatch struct {
-	ID           string `json:"id"`
-	Status       string `json:"status"`
-	MessageCount int    `json:"messageCount"`
+	ID              string `json:"id"`
+	Status          string `json:"status"`
+	MessageCount    int    `json:"messageCount"`
+	QueuedCount     int    `json:"queuedCount"`
+	AcceptedCount   int    `json:"acceptedCount"`
+	FailedCount     int    `json:"failedCount"`
+	SuppressedCount int    `json:"suppressedCount"`
+}
+
+type MailBatchItem struct {
+	ID             string          `json:"id"`
+	BatchID        string          `json:"batchId"`
+	MessageID      *string         `json:"messageId,omitempty"`
+	RecipientEmail string          `json:"recipientEmail"`
+	Status         string          `json:"status"`
+	ErrorCode      *string         `json:"errorCode,omitempty"`
+	ErrorMessage   *string         `json:"errorMessage,omitempty"`
+	Recipients     []MailRecipient `json:"recipients"`
+}
+
+type MailBatchListResult struct {
+	Data []MailBatch `json:"data"`
+}
+
+type MailBatchItemListResult struct {
+	Data []MailBatchItem `json:"data"`
 }
 
 type MailInboundDomain struct {

@@ -89,6 +89,10 @@ func New(options Options) (*Client, error) {
 		Templates:    &MailTemplatesClient{client: client},
 		Events:       &MailEventsClient{client: client},
 		Webhooks:     &MailWebhooksClient{client: client},
+		Streams:      &MailStreamsClient{client: client},
+		Audiences:    &MailAudiencesClient{client: client},
+		Campaigns:    &MailCampaignsClient{client: client},
+		Exports:      &MailExportsClient{client: client},
 		Limits:       &MailLimitsClient{client: client},
 		Scheduled:    &MailScheduledClient{client: client},
 		Batch:        &MailBatchClient{client: client},
@@ -120,6 +124,10 @@ func (c *Client) requestWithHeaders(ctx context.Context, method, path string, bo
 
 func (c *Client) mailRequest(ctx context.Context, method, path string, body any, out any) error {
 	return c.requestWithBase(ctx, c.mailBaseURL, method, path, body, out)
+}
+
+func (c *Client) mailRequestWithHeaders(ctx context.Context, method, path string, body any, headers map[string]string, out any) error {
+	return c.requestWithBaseHeaders(ctx, c.mailBaseURL, method, path, body, headers, out)
 }
 
 func (c *Client) requestWithBase(ctx context.Context, baseURL, method, path string, body any, out any) error {

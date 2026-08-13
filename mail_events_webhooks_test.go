@@ -19,33 +19,33 @@ func TestMailEventsTimelineAndWebhooks(t *testing.T) {
 			calls = append(calls, req.Method+" "+req.URL.String())
 			switch {
 			case req.Method == http.MethodGet && strings.HasSuffix(req.URL.Path, "/mail/events"):
-				if req.URL.Query().Get("type") != "mail.message.sent" || req.URL.Query().Get("messageId") != "msg_123" {
+				if req.URL.Query().Get("type") != "mail.message.mta_accepted" || req.URL.Query().Get("messageId") != "msg_123" {
 					t.Fatalf("unexpected event query: %s", req.URL.RawQuery)
 				}
-				return jsonResponse(http.StatusOK, `{"data":[`+phase7EventJSON()+`],"nextCursor":null}`), nil
+				return jsonResponse(http.StatusOK, `{"data":[`+eventsWebhookEventJSON()+`],"nextCursor":null}`), nil
 			case req.Method == http.MethodGet && strings.HasSuffix(req.URL.Path, "/mail/events/evt_123"):
-				return jsonResponse(http.StatusOK, phase7EventJSON()), nil
+				return jsonResponse(http.StatusOK, eventsWebhookEventJSON()), nil
 			case req.Method == http.MethodGet && strings.HasSuffix(req.URL.Path, "/mail/messages/msg_123/timeline"):
-				return jsonResponse(http.StatusOK, `{"data":[{"type":"mail.message.queued","label":"Message queued","createdAt":"2026-05-09T12:00:00Z"},{"type":"mail.message.sent","label":"Accepted by StackShift outbound MTA","createdAt":"2026-05-09T12:01:00Z"}]}`), nil
+				return jsonResponse(http.StatusOK, `{"data":[{"type":"mail.message.queued","label":"Message queued","createdAt":"2026-05-09T12:00:00Z"},{"type":"mail.message.mta_accepted","label":"Accepted by StackShift outbound MTA","createdAt":"2026-05-09T12:01:00Z"}]}`), nil
 			case req.Method == http.MethodPost && strings.HasSuffix(req.URL.Path, "/mail/webhooks"):
-				return jsonResponse(http.StatusCreated, phase7WebhookJSON(`,"secret":"whsec_test"`)), nil
+				return jsonResponse(http.StatusCreated, eventsWebhookWebhookJSON(`,"secret":"whsec_test"`)), nil
 			case req.Method == http.MethodGet && strings.HasSuffix(req.URL.Path, "/mail/webhooks"):
-				return jsonResponse(http.StatusOK, `{"data":[`+phase7WebhookJSON("")+`],"nextCursor":null}`), nil
+				return jsonResponse(http.StatusOK, `{"data":[`+eventsWebhookWebhookJSON("")+`],"nextCursor":null}`), nil
 			case req.Method == http.MethodGet && strings.HasSuffix(req.URL.Path, "/mail/webhooks/wh_123"):
-				return jsonResponse(http.StatusOK, phase7WebhookJSON("")), nil
+				return jsonResponse(http.StatusOK, eventsWebhookWebhookJSON("")), nil
 			case req.Method == http.MethodPatch && strings.HasSuffix(req.URL.Path, "/mail/webhooks/wh_123"):
-				return jsonResponse(http.StatusOK, phase7WebhookJSON("")), nil
+				return jsonResponse(http.StatusOK, eventsWebhookWebhookJSON("")), nil
 			case req.Method == http.MethodPost && strings.HasSuffix(req.URL.Path, "/mail/webhooks/wh_123/rotate-secret"):
 				return jsonResponse(http.StatusOK, `{"secret":"whsec_new"}`), nil
 			case req.Method == http.MethodGet && strings.HasSuffix(req.URL.Path, "/mail/webhooks/wh_123/deliveries"):
 				if req.URL.Query().Get("status") != "failed" {
 					t.Fatalf("unexpected delivery query: %s", req.URL.RawQuery)
 				}
-				return jsonResponse(http.StatusOK, `{"data":[`+phase7DeliveryJSON("failed")+`],"nextCursor":null}`), nil
+				return jsonResponse(http.StatusOK, `{"data":[`+eventsWebhookDeliveryJSON("failed")+`],"nextCursor":null}`), nil
 			case req.Method == http.MethodGet && strings.HasSuffix(req.URL.Path, "/mail/webhook-deliveries/whd_123"):
-				return jsonResponse(http.StatusOK, phase7DeliveryDetailJSON("failed")), nil
+				return jsonResponse(http.StatusOK, eventsWebhookDeliveryDetailJSON("failed")), nil
 			case req.Method == http.MethodPost && strings.HasSuffix(req.URL.Path, "/mail/webhook-deliveries/whd_123/retry"):
-				return jsonResponse(http.StatusAccepted, phase7DeliveryJSON("pending")), nil
+				return jsonResponse(http.StatusAccepted, eventsWebhookDeliveryJSON("pending")), nil
 			case req.Method == http.MethodDelete && strings.HasSuffix(req.URL.Path, "/mail/webhooks/wh_123"):
 				return jsonResponse(http.StatusNoContent, ``), nil
 			default:
@@ -57,12 +57,12 @@ func TestMailEventsTimelineAndWebhooks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	events, err := client.Mail.Events.List(context.Background(), MailEventListOptions{Type: "mail.message.sent", MessageID: "msg_123", Limit: 20})
+	events, err := client.Mail.Events.List(context.Background(), MailEventListOptions{Type: "mail.message.mta_accepted", MessageID: "msg_123", Limit: 20})
 	if err != nil || events.Data[0].ID != "evt_123" {
 		t.Fatalf("events=%+v err=%v", events, err)
 	}
 	event, err := client.Mail.Events.Get(context.Background(), "evt_123")
-	if err != nil || event.Type != "mail.message.sent" {
+	if err != nil || event.Type != "mail.message.mta_accepted" {
 		t.Fatalf("event=%+v err=%v", event, err)
 	}
 	timeline, err := client.Mail.Messages.Timeline(context.Background(), "msg_123")
@@ -71,7 +71,7 @@ func TestMailEventsTimelineAndWebhooks(t *testing.T) {
 	}
 
 	created, err := client.Mail.Webhooks.Create(context.Background(), MailWebhookCreateRequest{
-		URL: "https://example.com/stackshift", EventTypes: []string{"mail.message.sent"},
+		URL: "https://example.com/stackshift", EventTypes: []string{"mail.message.mta_accepted"},
 	})
 	if err != nil || created.Secret != "whsec_test" {
 		t.Fatalf("created=%+v err=%v", created, err)
@@ -138,18 +138,18 @@ func TestMailWebhookSignatureVerification(t *testing.T) {
 	}
 }
 
-func phase7EventJSON() string {
-	return `{"id":"evt_123","type":"mail.message.sent","resourceType":"message","resourceId":"msg_123","messageId":"msg_123","payload":{"messageId":"msg_123","status":"sent"},"occurredAt":"2026-05-09T12:01:00Z","createdAt":"2026-05-09T12:01:00Z"}`
+func eventsWebhookEventJSON() string {
+	return `{"id":"evt_123","type":"mail.message.mta_accepted","resourceType":"message","resourceId":"msg_123","messageId":"msg_123","payload":{"messageId":"msg_123","status":"mta_accepted"},"occurredAt":"2026-05-09T12:01:00Z","createdAt":"2026-05-09T12:01:00Z"}`
 }
 
-func phase7WebhookJSON(extra string) string {
-	return `{"id":"wh_123","url":"https://example.com/stackshift","description":"Production mail events","status":"active","eventTypes":["mail.message.sent"],"failureCount":0,"lastSuccessAt":null,"lastFailureAt":null,"createdAt":"2026-05-09T12:00:00Z"` + extra + `}`
+func eventsWebhookWebhookJSON(extra string) string {
+	return `{"id":"wh_123","url":"https://example.com/stackshift","description":"Production mail events","status":"active","eventTypes":["mail.message.mta_accepted"],"failureCount":0,"lastSuccessAt":null,"lastFailureAt":null,"createdAt":"2026-05-09T12:00:00Z"` + extra + `}`
 }
 
-func phase7DeliveryJSON(status string) string {
+func eventsWebhookDeliveryJSON(status string) string {
 	return `{"id":"whd_123","endpointId":"wh_123","eventId":"evt_123","status":"` + status + `","attemptCount":1,"nextAttemptAt":null,"lastAttemptAt":"2026-05-09T12:01:00Z","responseStatus":500,"responseBodySnippet":"failed","errorMessage":"non-2xx response","createdAt":"2026-05-09T12:00:00Z","completedAt":null}`
 }
 
-func phase7DeliveryDetailJSON(status string) string {
-	return phase7DeliveryJSON(status)[:len(phase7DeliveryJSON(status))-1] + `,"attempts":[{"id":"whda_123","attemptNumber":1,"responseStatus":500,"responseBodySnippet":"failed","errorMessage":"non-2xx response","durationMs":12,"createdAt":"2026-05-09T12:01:00Z"}]}`
+func eventsWebhookDeliveryDetailJSON(status string) string {
+	return eventsWebhookDeliveryJSON(status)[:len(eventsWebhookDeliveryJSON(status))-1] + `,"attempts":[{"id":"whda_123","attemptNumber":1,"responseStatus":500,"responseBodySnippet":"failed","errorMessage":"non-2xx response","durationMs":12,"createdAt":"2026-05-09T12:01:00Z"}]}`
 }
