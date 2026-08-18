@@ -1,6 +1,7 @@
 package stackshift
 
 import (
+	"encoding/json"
 	"io"
 	"time"
 )
@@ -626,10 +627,15 @@ type AssetTransformPreset struct {
 }
 
 type AssetTransformation struct {
-	ID             string    `json:"id"`
-	Name           string    `json:"name"`
-	Spec           string    `json:"spec"`
-	NormalizedSpec string    `json:"normalized_spec"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID                string          `json:"id"`
+	Name              string          `json:"name"`
+	Spec              string          `json:"spec"`
+	NormalizedSpec    string          `json:"normalized_spec"`
+	DefinitionVersion int             `json:"definition_version"`
+	MediaKind         string          `json:"media_kind"`
+	Definition        json.RawMessage `json:"definition,omitempty"`
+	Eager             bool            `json:"eager"`
+	Revision          int64           `json:"revision"`
+	CreatedAt         time.Time       `json:"created_at"`
+	UpdatedAt         time.Time       `json:"updated_at"`
 }
