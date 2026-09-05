@@ -8,6 +8,13 @@ import (
 )
 
 type MailClient struct {
+	Automations *MailAutomationsClient
+	Forms       *MailFormsClient
+	Segments    *MailSegmentsClient
+
+	Billing      *MailBillingClient
+	Migration    *MailMigrationClient
+	Tracking     *MailTrackingClient
 	client       *Client
 	Domains      *MailDomainsClient
 	Messages     *MailMessagesClient
@@ -18,6 +25,7 @@ type MailClient struct {
 	Events       *MailEventsClient
 	Webhooks     *MailWebhooksClient
 	Streams      *MailStreamsClient
+	Brands       *MailBrandsClient
 	Audiences    *MailAudiencesClient
 	Campaigns    *MailCampaignsClient
 	Exports      *MailExportsClient

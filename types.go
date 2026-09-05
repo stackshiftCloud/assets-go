@@ -20,25 +20,28 @@ type MailAddress struct {
 }
 
 type MailSendRequest struct {
-	From           any                   `json:"from"`
-	To             any                   `json:"to"`
-	Cc             any                   `json:"cc,omitempty"`
-	Bcc            any                   `json:"bcc,omitempty"`
-	ReplyTo        any                   `json:"replyTo,omitempty"`
-	Subject        string                `json:"subject"`
-	HTML           string                `json:"html,omitempty"`
-	Text           string                `json:"text,omitempty"`
-	IdempotencyKey string                `json:"idempotencyKey,omitempty"`
-	Attachments    []MailAttachmentInput `json:"attachments,omitempty"`
-	Headers        map[string]string     `json:"headers,omitempty"`
-	Tags           map[string]string     `json:"tags,omitempty"`
-	Stream         string                `json:"stream,omitempty"`
+	Simulation     *MailSimulationOptions `json:"simulation,omitempty"`
+	Tracking       *MailTrackingOptions   `json:"tracking,omitempty"`
+	From           any                    `json:"from"`
+	To             any                    `json:"to"`
+	Cc             any                    `json:"cc,omitempty"`
+	Bcc            any                    `json:"bcc,omitempty"`
+	ReplyTo        any                    `json:"replyTo,omitempty"`
+	Subject        string                 `json:"subject"`
+	HTML           string                 `json:"html,omitempty"`
+	Text           string                 `json:"text,omitempty"`
+	IdempotencyKey string                 `json:"idempotencyKey,omitempty"`
+	Attachments    []MailAttachmentInput  `json:"attachments,omitempty"`
+	Headers        map[string]string      `json:"headers,omitempty"`
+	Tags           map[string]string      `json:"tags,omitempty"`
+	Stream         string                 `json:"stream,omitempty"`
 }
 
 type MailSendResponse struct {
-	ID                string `json:"id"`
-	Status            string `json:"status"`
-	IdempotencyStatus string `json:"idempotencyStatus"`
+	Mode              MailMode `json:"mode"`
+	ID                string   `json:"id"`
+	Status            string   `json:"status"`
+	IdempotencyStatus string   `json:"idempotencyStatus"`
 }
 
 type MailDNSRecord struct {
@@ -51,17 +54,18 @@ type MailDNSRecord struct {
 }
 
 type MailDomain struct {
-	ID               string          `json:"id"`
-	Domain           string          `json:"domain"`
-	Status           string          `json:"status"`
-	SPFStatus        string          `json:"spfStatus"`
-	DKIMStatus       string          `json:"dkimStatus"`
-	DMARCStatus      string          `json:"dmarcStatus"`
-	ReturnPathStatus string          `json:"returnPathStatus"`
-	Records          []MailDNSRecord `json:"records,omitempty"`
-	CreatedAt        time.Time       `json:"createdAt"`
-	VerifiedAt       *time.Time      `json:"verifiedAt,omitempty"`
-	LastCheckedAt    *time.Time      `json:"lastCheckedAt,omitempty"`
+	Health           *MailSendingDomainHealth `json:"health,omitempty"`
+	ID               string                   `json:"id"`
+	Domain           string                   `json:"domain"`
+	Status           string                   `json:"status"`
+	SPFStatus        string                   `json:"spfStatus"`
+	DKIMStatus       string                   `json:"dkimStatus"`
+	DMARCStatus      string                   `json:"dmarcStatus"`
+	ReturnPathStatus string                   `json:"returnPathStatus"`
+	Records          []MailDNSRecord          `json:"records,omitempty"`
+	CreatedAt        time.Time                `json:"createdAt"`
+	VerifiedAt       *time.Time               `json:"verifiedAt,omitempty"`
+	LastCheckedAt    *time.Time               `json:"lastCheckedAt,omitempty"`
 }
 
 type MailDomainListResult struct {
@@ -78,6 +82,7 @@ type MailMessageListOptions struct {
 }
 
 type MailMessageSummary struct {
+	Mode          MailMode   `json:"mode"`
 	ID            string     `json:"id"`
 	From          string     `json:"from"`
 	To            []string   `json:"to"`
@@ -94,6 +99,7 @@ type MailMessageListResult struct {
 }
 
 type MailMessage struct {
+	Mode                MailMode             `json:"mode"`
 	ID                  string               `json:"id"`
 	From                MailAddress          `json:"from"`
 	To                  []string             `json:"to"`

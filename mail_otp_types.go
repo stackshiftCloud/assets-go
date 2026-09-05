@@ -3,15 +3,16 @@ package stackshift
 import "time"
 
 type MailOTPSendRequest struct {
-	To             string         `json:"to"`
-	Purpose        string         `json:"purpose"`
-	From           string         `json:"from,omitempty"`
-	ExpiresIn      string         `json:"expiresIn,omitempty"`
-	CodeLength     int            `json:"codeLength,omitempty"`
-	Metadata       map[string]any `json:"metadata,omitempty"`
-	IdempotencyKey string         `json:"idempotencyKey,omitempty"`
-	Subject        string         `json:"subject,omitempty"`
-	BrandName      string         `json:"brandName,omitempty"`
+	Simulation     *MailSimulationOptions `json:"simulation,omitempty"`
+	To             string                 `json:"to"`
+	Purpose        string                 `json:"purpose"`
+	From           string                 `json:"from,omitempty"`
+	ExpiresIn      string                 `json:"expiresIn,omitempty"`
+	CodeLength     int                    `json:"codeLength,omitempty"`
+	Metadata       map[string]any         `json:"metadata,omitempty"`
+	IdempotencyKey string                 `json:"idempotencyKey,omitempty"`
+	Subject        string                 `json:"subject,omitempty"`
+	BrandName      string                 `json:"brandName,omitempty"`
 }
 
 type MailOTPVerifyRequest struct {
@@ -30,6 +31,7 @@ type MailOTPChallengeListOptions struct {
 }
 
 type MailOTPSendResponse struct {
+	Mode              MailMode  `json:"mode"`
 	ID                string    `json:"id"`
 	To                string    `json:"to"`
 	Purpose           string    `json:"purpose"`
@@ -48,6 +50,7 @@ type MailOTPVerifyResponse struct {
 }
 
 type MailOTPChallenge struct {
+	Mode              MailMode       `json:"mode"`
 	ID                string         `json:"id"`
 	To                string         `json:"to"`
 	Purpose           string         `json:"purpose"`

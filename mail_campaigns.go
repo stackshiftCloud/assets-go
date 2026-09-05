@@ -8,60 +8,90 @@ import (
 )
 
 type MailAudience struct {
-	ID          string    `json:"id"`
-	WorkspaceID string    `json:"workspaceId"`
-	Name        string    `json:"name"`
-	Description string    `json:"description,omitempty"`
-	Status      string    `json:"status"`
-	MemberCount int       `json:"memberCount"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	BrandID        string    `json:"brandId"`
+	Mode           MailMode  `json:"mode"`
+	EditableFields []string  `json:"editableFields"`
+	ID             string    `json:"id"`
+	WorkspaceID    string    `json:"workspaceId"`
+	Name           string    `json:"name"`
+	Description    string    `json:"description,omitempty"`
+	Status         string    `json:"status"`
+	MemberCount    int       `json:"memberCount"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }
 
 type MailAudienceMember struct {
-	ID            string    `json:"id"`
-	AudienceID    string    `json:"audienceId"`
-	Email         string    `json:"email"`
-	Name          string    `json:"name,omitempty"`
-	Status        string    `json:"status"`
-	ConsentSource string    `json:"consentSource"`
-	ConsentAt     time.Time `json:"consentAt"`
-	ConsentIP     string    `json:"consentIp,omitempty"`
+	BrandID       string            `json:"brandId"`
+	ConfirmedIP   string            `json:"confirmedIp,omitempty"`
+	ConfirmedAt   *time.Time        `json:"confirmedAt,omitempty"`
+	Attributes    map[string]string `json:"attributes,omitempty"`
+	ID            string            `json:"id"`
+	AudienceID    string            `json:"audienceId"`
+	Email         string            `json:"email"`
+	Name          string            `json:"name,omitempty"`
+	Status        string            `json:"status"`
+	ConsentSource string            `json:"consentSource"`
+	ConsentAt     time.Time         `json:"consentAt"`
+	ConsentIP     string            `json:"consentIp,omitempty"`
 }
 
 type MailAudienceCreateRequest struct {
+	BrandID     string `json:"brandId"`
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
 }
 
 type MailAudienceMemberImport struct {
-	Email         string    `json:"email"`
-	Name          string    `json:"name,omitempty"`
-	ConsentSource string    `json:"consentSource"`
-	ConsentAt     time.Time `json:"consentAt"`
-	ConsentIP     string    `json:"consentIp,omitempty"`
+	Attributes    map[string]string `json:"attributes,omitempty"`
+	Email         string            `json:"email"`
+	Name          string            `json:"name,omitempty"`
+	ConsentSource string            `json:"consentSource"`
+	ConsentAt     time.Time         `json:"consentAt"`
+	ConsentIP     string            `json:"consentIp,omitempty"`
 }
 
 type MailCampaign struct {
-	ID         string     `json:"id"`
-	AudienceID string     `json:"audienceId"`
-	BatchID    string     `json:"batchId,omitempty"`
-	Name       string     `json:"name"`
-	Template   string     `json:"template"`
-	VersionID  string     `json:"versionId,omitempty"`
-	From       string     `json:"from"`
-	Status     string     `json:"status"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	UpdatedAt  time.Time  `json:"updatedAt"`
-	QueuedAt   *time.Time `json:"queuedAt,omitempty"`
+	ApprovedMaxKobo    *int64                 `json:"approvedMaxKobo,omitempty"`
+	BillingBlockReason string                 `json:"billingBlockReason,omitempty"`
+	Simulation         *MailSimulationOptions `json:"simulation,omitempty"`
+	BrandID            string                 `json:"brandId"`
+	Mode               MailMode               `json:"mode"`
+	Revision           int                    `json:"revision"`
+	Content            *MailCampaignContent   `json:"content,omitempty"`
+	VariantBContent    *MailCampaignContent   `json:"variantBContent,omitempty"`
+	VariantBVersionID  string                 `json:"variantBVersionId,omitempty"`
+	VariantBPercent    int                    `json:"variantBPercent,omitempty"`
+	SegmentID          string                 `json:"segmentId,omitempty"`
+	ReplyTo            string                 `json:"replyTo,omitempty"`
+	Tracking           *MailTrackingOptions   `json:"tracking,omitempty"`
+	ID                 string                 `json:"id"`
+	AudienceID         string                 `json:"audienceId"`
+	BatchID            string                 `json:"batchId,omitempty"`
+	Name               string                 `json:"name"`
+	Template           string                 `json:"template"`
+	VersionID          string                 `json:"versionId,omitempty"`
+	From               string                 `json:"from"`
+	Status             string                 `json:"status"`
+	CreatedAt          time.Time              `json:"createdAt"`
+	UpdatedAt          time.Time              `json:"updatedAt"`
+	QueuedAt           *time.Time             `json:"queuedAt,omitempty"`
 }
 
 type MailCampaignCreateRequest struct {
-	Name       string `json:"name"`
-	AudienceID string `json:"audienceId"`
-	Template   string `json:"template"`
-	VersionID  string `json:"versionId,omitempty"`
-	From       string `json:"from"`
+	Simulation        *MailSimulationOptions `json:"simulation,omitempty"`
+	Content           *MailCampaignContent   `json:"content,omitempty"`
+	VariantBContent   *MailCampaignContent   `json:"variantBContent,omitempty"`
+	VariantBVersionID string                 `json:"variantBVersionId,omitempty"`
+	VariantBPercent   int                    `json:"variantBPercent,omitempty"`
+	SegmentID         string                 `json:"segmentId,omitempty"`
+	ReplyTo           string                 `json:"replyTo,omitempty"`
+	Tracking          *MailTrackingOptions   `json:"tracking,omitempty"`
+	Name              string                 `json:"name"`
+	AudienceID        string                 `json:"audienceId"`
+	Template          string                 `json:"template"`
+	VersionID         string                 `json:"versionId,omitempty"`
+	From              string                 `json:"from"`
 }
 
 type MailAudiencesClient struct{ client *Client }
@@ -121,8 +151,8 @@ func (m *MailCampaignsClient) Get(ctx context.Context, id string) (*MailCampaign
 	return &out, err
 }
 
-func (m *MailCampaignsClient) Send(ctx context.Context, id string) (*MailCampaign, error) {
+func (m *MailCampaignsClient) Send(ctx context.Context, id string, revision ...int) (*MailCampaign, error) {
 	var out MailCampaign
-	err := m.client.mailRequest(ctx, http.MethodPost, "/mail/campaigns/"+url.PathEscape(id)+"/send", nil, &out)
+	err := m.client.mailRequest(ctx, http.MethodPost, "/mail/campaigns/"+url.PathEscape(id)+"/send", campaignRevision(revision), &out)
 	return &out, err
 }

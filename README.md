@@ -274,3 +274,42 @@ log.Println(upload.URL)
 ```
 
 Then upload the browser file to `upload.URL` with `upload.Method`. Do not expose your StackShift API key to browser code.
+
+### Campaign drafts and engagement
+
+`Mail.Campaigns.Create` accepts `MailCampaignContent`; existing template/version inputs remain supported. `Update` requires the complete draft plus `Revision`. Use `Preview`, `Test`, `Send(ctx, id, revision)`, and `Schedule(ctx, id, sendAt, revision)` to review and dispatch. Stale revisions return 409.
+
+Set `Tracking: &MailTrackingOptions{Opens: &opens, Clicks: &clicks}` on sends; nil fields inherit workspace defaults. `Mail.Tracking` exposes settings, message/campaign reports, and branded-domain management. Deployment capability flags control availability. Opens are approximate; detailed activity expires after 90 days. OTP and test messages never track.
+
+### Isolated testing, brands, migration, and spending
+
+Use a `sspat_test_` credential for simulation. `MailSimulationOptions{Scenario: "delayed"}` produces a delay and simulated delivery after 60 seconds; delivered, bounced, and complained are also supported. Test resources are isolated and no real email is delivered.
+
+Create a profile with `Mail.Brands.Create`, then pass its ID as the required `BrandID` in `MailAudienceCreateRequest`. Contact names/attributes are shared within a brand; consent stays per audience. `Mail.Automations`, `Mail.Forms`, and `Mail.Segments` expose audience-owned resources.
+
+`Mail.Migration` exposes public DNS audit/planning and authenticated checklists. `Mail.Billing.Summary` and `Mail.Campaigns.Estimate` report recipient allowance and Mail-only credit. Use `SendWithBudget` / `ScheduleWithBudget` with `MailCampaignBudget` to approve the maximum in kobo, including an explicit zero. Pricing remains unavailable until an administrator publishes and explicitly activates a rate card. Owner spending opt-in and top-ups are authenticated dashboard actions.
+
+## Native video, governed DAM and product rendering
+
+Use the space-scoped DAM and video clients for collaborators, metadata schemas, bucket governance, reviewed publications, picker capabilities, model preparation, product rendering, galleries, version-pinned encoding, captions and playback sessions.
+
+```go
+dam := client.Assets.DAM(spaceID)
+video := client.Assets.Video(spaceID)
+
+schema, err := dam.CreateMetadataSchema(ctx, map[string]any{
+    "name": "Products", "fields": []map[string]any{{
+        "key": "product_name", "label": "Product name", "type": "text", "required": true,
+    }},
+})
+if err != nil { return err }
+published, err := dam.PublishMetadataSchema(ctx, schema.ID, schema.Revision)
+if err != nil { return err }
+_ = published
+_, err = video.Workspace(ctx, assetID)
+if err != nil { return err }
+```
+
+Mutations carry the supplied revision in `If-Match`. Model preparation and rendering carry an idempotency key; render submission also carries the accepted maximum units. Playback renewal and events authenticate with the session credential, not the account key. Keep these clients on your backend and return grants with `Cache-Control: private, no-store`.
+
+See the [Assets SDK guide](https://docs.stackshift.cloud/assets/sdk-media-workflows) and its linked feature guides for complete language examples, inputs, permissions, review transitions and browser callbacks.

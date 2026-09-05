@@ -27,8 +27,9 @@ type Client struct {
 	cdnBaseURL  string
 	httpClient  HTTPDoer
 
-	Assets *AssetsClient
-	Mail   *MailClient
+	Assets           *AssetsClient
+	Mail             *MailClient
+	WorkloadSecurity *WorkloadSecurityClient
 }
 
 type apiEnvelope struct {
@@ -80,6 +81,7 @@ func New(options Options) (*Client, error) {
 		httpClient:  httpClient,
 	}
 	client.Assets = &AssetsClient{client: client}
+	client.WorkloadSecurity = &WorkloadSecurityClient{client: client}
 	client.Mail = &MailClient{
 		client:       client,
 		Domains:      &MailDomainsClient{client: client},
@@ -90,13 +92,21 @@ func New(options Options) (*Client, error) {
 		Events:       &MailEventsClient{client: client},
 		Webhooks:     &MailWebhooksClient{client: client},
 		Streams:      &MailStreamsClient{client: client},
-		Audiences:    &MailAudiencesClient{client: client},
-		Campaigns:    &MailCampaignsClient{client: client},
-		Exports:      &MailExportsClient{client: client},
-		Limits:       &MailLimitsClient{client: client},
-		Scheduled:    &MailScheduledClient{client: client},
-		Batch:        &MailBatchClient{client: client},
-		Analytics:    &MailAnalyticsClient{client: client},
+		Billing:      &MailBillingClient{client: client},
+		Automations:  &MailAutomationsClient{client: client},
+		Forms:        &MailFormsClient{client: client},
+		Segments:     &MailSegmentsClient{client: client},
+
+		Migration: &MailMigrationClient{client: client},
+		Brands:    &MailBrandsClient{client: client},
+		Audiences: &MailAudiencesClient{client: client},
+		Campaigns: &MailCampaignsClient{client: client},
+		Tracking:  &MailTrackingClient{client: client},
+		Exports:   &MailExportsClient{client: client},
+		Limits:    &MailLimitsClient{client: client},
+		Scheduled: &MailScheduledClient{client: client},
+		Batch:     &MailBatchClient{client: client},
+		Analytics: &MailAnalyticsClient{client: client},
 	}
 	client.Mail.Inbound = &MailInboundClient{
 		client:   client,

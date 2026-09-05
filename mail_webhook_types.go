@@ -3,6 +3,7 @@ package stackshift
 import "time"
 
 type MailEvent struct {
+	Mode         MailMode       `json:"mode"`
 	ID           string         `json:"id"`
 	Type         string         `json:"type"`
 	ResourceType *string        `json:"resourceType,omitempty"`
@@ -101,6 +102,7 @@ type MailWebhookDeliveryListResult struct {
 }
 
 type MailWebhookDelivery struct {
+	Mode                MailMode   `json:"mode"`
 	ID                  string     `json:"id"`
 	EndpointID          string     `json:"endpointId"`
 	EventID             string     `json:"eventId"`

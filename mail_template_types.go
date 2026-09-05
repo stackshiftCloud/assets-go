@@ -27,6 +27,7 @@ type MailTemplateListOptions struct {
 }
 
 type MailTemplate struct {
+	Mode            MailMode  `json:"mode"`
 	ID              string    `json:"id"`
 	Name            string    `json:"name"`
 	Slug            string    `json:"slug"`
@@ -73,34 +74,39 @@ type MailTemplatePreview struct {
 }
 
 type MailTemplateTestSendRequest struct {
-	To        any            `json:"to"`
-	From      any            `json:"from,omitempty"`
-	Data      map[string]any `json:"data"`
-	VersionID string         `json:"versionId,omitempty"`
+	Simulation *MailSimulationOptions `json:"simulation,omitempty"`
+	To         any                    `json:"to"`
+	From       any                    `json:"from,omitempty"`
+	Data       map[string]any         `json:"data"`
+	VersionID  string                 `json:"versionId,omitempty"`
 }
 
 type MailTemplateTestSendResponse struct {
-	MessageID string `json:"messageId"`
-	Status    string `json:"status"`
+	Mode      MailMode `json:"mode"`
+	MessageID string   `json:"messageId"`
+	Status    string   `json:"status"`
 }
 
 type MailSendTemplateRequest struct {
-	Template       string                `json:"template"`
-	VersionID      string                `json:"versionId,omitempty"`
-	To             any                   `json:"to"`
-	From           any                   `json:"from,omitempty"`
-	Cc             any                   `json:"cc,omitempty"`
-	Bcc            any                   `json:"bcc,omitempty"`
-	ReplyTo        any                   `json:"replyTo,omitempty"`
-	Data           map[string]any        `json:"data"`
-	IdempotencyKey string                `json:"idempotencyKey,omitempty"`
-	Attachments    []MailAttachmentInput `json:"attachments,omitempty"`
+	Simulation     *MailSimulationOptions `json:"simulation,omitempty"`
+	Tracking       *MailTrackingOptions   `json:"tracking,omitempty"`
+	Template       string                 `json:"template"`
+	VersionID      string                 `json:"versionId,omitempty"`
+	To             any                    `json:"to"`
+	From           any                    `json:"from,omitempty"`
+	Cc             any                    `json:"cc,omitempty"`
+	Bcc            any                    `json:"bcc,omitempty"`
+	ReplyTo        any                    `json:"replyTo,omitempty"`
+	Data           map[string]any         `json:"data"`
+	IdempotencyKey string                 `json:"idempotencyKey,omitempty"`
+	Attachments    []MailAttachmentInput  `json:"attachments,omitempty"`
 }
 
 type MailSendTemplateResponse struct {
-	ID                string `json:"id"`
-	Status            string `json:"status"`
-	TemplateID        string `json:"templateId"`
-	TemplateVersionID string `json:"templateVersionId"`
-	IdempotencyStatus string `json:"idempotencyStatus"`
+	Mode              MailMode `json:"mode"`
+	ID                string   `json:"id"`
+	Status            string   `json:"status"`
+	TemplateID        string   `json:"templateId"`
+	TemplateVersionID string   `json:"templateVersionId"`
+	IdempotencyStatus string   `json:"idempotencyStatus"`
 }

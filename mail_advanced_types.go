@@ -12,21 +12,24 @@ type MailAttachmentInput struct {
 }
 
 type MailScheduledCreateRequest struct {
-	SendAt         time.Time             `json:"sendAt"`
-	Message        *MailSendRequest      `json:"message,omitempty"`
-	Template       string                `json:"template,omitempty"`
-	VersionID      string                `json:"versionId,omitempty"`
-	To             any                   `json:"to,omitempty"`
-	From           any                   `json:"from,omitempty"`
-	Data           map[string]any        `json:"data,omitempty"`
-	IdempotencyKey string                `json:"idempotencyKey,omitempty"`
-	Attachments    []MailAttachmentInput `json:"attachments,omitempty"`
-	Headers        map[string]string     `json:"headers,omitempty"`
-	Tags           map[string]string     `json:"tags,omitempty"`
-	Stream         string                `json:"stream,omitempty"`
+	Simulation     *MailSimulationOptions `json:"simulation,omitempty"`
+	Tracking       *MailTrackingOptions   `json:"tracking,omitempty"`
+	SendAt         time.Time              `json:"sendAt"`
+	Message        *MailSendRequest       `json:"message,omitempty"`
+	Template       string                 `json:"template,omitempty"`
+	VersionID      string                 `json:"versionId,omitempty"`
+	To             any                    `json:"to,omitempty"`
+	From           any                    `json:"from,omitempty"`
+	Data           map[string]any         `json:"data,omitempty"`
+	IdempotencyKey string                 `json:"idempotencyKey,omitempty"`
+	Attachments    []MailAttachmentInput  `json:"attachments,omitempty"`
+	Headers        map[string]string      `json:"headers,omitempty"`
+	Tags           map[string]string      `json:"tags,omitempty"`
+	Stream         string                 `json:"stream,omitempty"`
 }
 
 type MailScheduledMessage struct {
+	Mode         MailMode   `json:"mode"`
 	ID           string     `json:"id"`
 	Status       string     `json:"status"`
 	SendAt       time.Time  `json:"sendAt"`
@@ -52,6 +55,8 @@ type MailBatchTemplateRecipient struct {
 }
 
 type MailBatchTemplateRequest struct {
+	Simulation *MailSimulationOptions       `json:"simulation,omitempty"`
+	Tracking   *MailTrackingOptions         `json:"tracking,omitempty"`
 	Template   string                       `json:"template"`
 	VersionID  string                       `json:"versionId,omitempty"`
 	From       any                          `json:"from"`
@@ -62,16 +67,18 @@ type MailBatchTemplateRequest struct {
 }
 
 type MailBatch struct {
-	ID              string `json:"id"`
-	Status          string `json:"status"`
-	MessageCount    int    `json:"messageCount"`
-	QueuedCount     int    `json:"queuedCount"`
-	AcceptedCount   int    `json:"acceptedCount"`
-	FailedCount     int    `json:"failedCount"`
-	SuppressedCount int    `json:"suppressedCount"`
+	Mode            MailMode `json:"mode"`
+	ID              string   `json:"id"`
+	Status          string   `json:"status"`
+	MessageCount    int      `json:"messageCount"`
+	QueuedCount     int      `json:"queuedCount"`
+	AcceptedCount   int      `json:"acceptedCount"`
+	FailedCount     int      `json:"failedCount"`
+	SuppressedCount int      `json:"suppressedCount"`
 }
 
 type MailBatchItem struct {
+	Mode           MailMode        `json:"mode"`
 	ID             string          `json:"id"`
 	BatchID        string          `json:"batchId"`
 	MessageID      *string         `json:"messageId,omitempty"`
