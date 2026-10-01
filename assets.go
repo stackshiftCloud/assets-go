@@ -15,7 +15,10 @@ import (
 )
 
 type AssetsClient struct {
-	client *Client
+	client      *Client
+	Connections *AssetConnectionsClient
+	Storage     *AssetStorageClient
+	Migrations  *AssetMigrationsClient
 }
 
 var BuiltInAssetTransformPresets = []AssetTransformPreset{

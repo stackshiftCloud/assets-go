@@ -8,6 +8,22 @@ Official Go SDK for StackShift.
 go get github.com/stackshiftCloud/assets-go
 ```
 
+## AI credits
+
+AI credits are account-scoped. Use the shared client to inspect usage, start a top-up, or select managed billing versus your own provider key:
+
+```go
+client, err := stackshift.New(stackshift.Options{})
+ctx := context.Background()
+balance, err := client.AICredits.Balance(ctx)
+usage, err := client.AICredits.Usage(ctx, url.Values{"product": {"assets"}, "limit": {"25"}})
+quote, err := client.AICredits.Quote(ctx, 1_000, "USD")
+checkout, err := client.AICredits.Checkout(ctx, quote.ID, uuid.NewString(), "paystack")
+funding, err := client.AICredits.SetFunding(ctx, "assets", "managed")
+```
+
+Keep account API keys and checkout creation on your server.
+
 ## Send email
 
 ```go
@@ -313,3 +329,17 @@ if err != nil { return err }
 Mutations carry the supplied revision in `If-Match`. Model preparation and rendering carry an idempotency key; render submission also carries the accepted maximum units. Playback renewal and events authenticate with the session credential, not the account key. Keep these clients on your backend and return grants with `Cache-Control: private, no-store`.
 
 See the [Assets SDK guide](https://docs.stackshift.cloud/assets/sdk-media-workflows) and its linked feature guides for complete language examples, inputs, permissions, review transitions and browser callbacks.
+
+## Assets storage and Cloudinary migration
+
+`client.Assets.ForSpace(spaceID)` exposes `Connections`, `Storage`, and `Migrations`. The storage configuration call sends `If-Match`; migration inputs and reports use the same wire fields as the Assets API.
+
+```go
+platform := client.Assets.ForSpace(spaceID)
+preview, err := platform.Migrations.Start(ctx, map[string]any{
+    "source_connection_id": connectionID, "destination_bucket_id": bucketID,
+    "source_prefix": "campaigns/2026", "dry_run": true,
+})
+if err != nil { return err }
+_, err = platform.Migrations.Report(ctx, preview["id"].(string))
+```

@@ -21,12 +21,14 @@ type HTTPDoer interface {
 }
 
 type Client struct {
-	apiKey      string
-	baseURL     string
-	mailBaseURL string
-	cdnBaseURL  string
-	httpClient  HTTPDoer
+	apiKey       string
+	assetSpaceID string
+	baseURL      string
+	mailBaseURL  string
+	cdnBaseURL   string
+	httpClient   HTTPDoer
 
+	AICredits        *AICreditsClient
 	Assets           *AssetsClient
 	Mail             *MailClient
 	WorkloadSecurity *WorkloadSecurityClient
@@ -81,6 +83,10 @@ func New(options Options) (*Client, error) {
 		httpClient:  httpClient,
 	}
 	client.Assets = &AssetsClient{client: client}
+	client.Assets.Connections = &AssetConnectionsClient{client: client}
+	client.Assets.Storage = &AssetStorageClient{client: client}
+	client.Assets.Migrations = &AssetMigrationsClient{client: client}
+	client.AICredits = &AICreditsClient{client: client}
 	client.WorkloadSecurity = &WorkloadSecurityClient{client: client}
 	client.Mail = &MailClient{
 		client:       client,
@@ -159,6 +165,9 @@ func (c *Client) requestWithBaseHeaders(ctx context.Context, baseURL, method, pa
 	}
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("User-Agent", "StackShift-Go/0.1")
+	if c.assetSpaceID != "" && strings.HasPrefix(path, "/assets") {
+		req.Header.Set("X-Asset-Space-ID", c.assetSpaceID)
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
