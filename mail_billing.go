@@ -13,6 +13,10 @@ type MailBillingSettings struct {
 	Revision       int   `json:"revision"`
 }
 type MailBillingSummary struct {
+	CatalogID              string              `json:"catalogId,omitempty"`
+	PlanSlug               string              `json:"planSlug,omitempty"`
+	MonthlyPriceKobo       int64               `json:"monthlyPriceKobo"`
+	OverageAllowed         *bool               `json:"overageAllowed,omitempty"`
 	ReconciliationRequired bool                `json:"reconciliationRequired"`
 	Active                 bool                `json:"active"`
 	Mode                   MailMode            `json:"mode"`

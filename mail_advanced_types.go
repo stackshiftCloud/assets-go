@@ -134,7 +134,19 @@ type MailAnalyticsOptions struct {
 	Event    string
 }
 
+type MailAnalyticsRateCohort struct {
+	Basis       string    `json:"basis"`
+	AsOf        time.Time `json:"asOf"`
+	Queued      int       `json:"queued"`
+	MTAAccepted int       `json:"mtaAccepted"`
+	Delivered   int       `json:"delivered"`
+	Bounced     int       `json:"bounced"`
+	Failed      int       `json:"failed"`
+}
+
 type MailAnalytics struct {
-	Summary map[string]int   `json:"summary"`
-	Series  []map[string]any `json:"series"`
+	RateCohort         *MailAnalyticsRateCohort `json:"rateCohort,omitempty"`
+	PreviousRateCohort *MailAnalyticsRateCohort `json:"previousRateCohort,omitempty"`
+	Summary            map[string]int           `json:"summary"`
+	Series             []map[string]any         `json:"series"`
 }

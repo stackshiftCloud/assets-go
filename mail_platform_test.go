@@ -25,6 +25,12 @@ func TestMailPlatformContracts(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx := context.Background()
+	if _, err = client.Mail.Segments.Create(ctx, MailSegmentInput{AudienceID: "audience", Name: "Compound", Match: "any", Conditions: []MailSegmentCondition{{Field: "plan", Operator: "equals", Value: "pro"}, {Field: "name", Operator: "exists"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if body["match"] != "any" || len(body["conditions"].([]any)) != 2 {
+		t.Fatalf("compound rules lost: %#v", body)
+	}
 	if _, err = client.Mail.Audiences.Create(ctx, MailAudienceCreateRequest{BrandID: "brand", Name: "News"}); err != nil || body["brandId"] != "brand" {
 		t.Fatalf("brand contract: %v %#v", err, body)
 	}

@@ -76,13 +76,21 @@ func (m *MailFormsClient) List(ctx context.Context) ([]MailSignupForm, error) {
 	return out.Data, err
 }
 
+type MailSegmentCondition struct {
+	Field    string `json:"field"`
+	Operator string `json:"operator"`
+	Value    string `json:"value,omitempty"`
+}
+
 type MailSegmentInput struct {
-	AudienceID  string `json:"audienceId"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Field       string `json:"field"`
-	Operator    string `json:"operator"`
-	Value       string `json:"value"`
+	Match       string                 `json:"match,omitempty"`
+	Conditions  []MailSegmentCondition `json:"conditions,omitempty"`
+	AudienceID  string                 `json:"audienceId"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Field       string                 `json:"field"`
+	Operator    string                 `json:"operator"`
+	Value       string                 `json:"value"`
 }
 type MailSegment struct {
 	MemberCount int    `json:"memberCount"`
