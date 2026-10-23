@@ -40,10 +40,10 @@ func TestMailSubscriberImportContracts(t *testing.T) {
 	if err = client.Mail.Audiences.SetEditableFields(context.Background(), "audience/id", nil); err != nil {
 		t.Fatal(err)
 	}
-	if calls[0].path != "/v1/mail/audiences/audience%2Fid/imports/preview" || calls[0].method != "POST" || calls[0].body["mode"] != "confirmation" {
+	if calls[0].path != "/api/v1/mail/audiences/audience%2Fid/imports/preview" || calls[0].method != "POST" || calls[0].body["mode"] != "confirmation" {
 		t.Fatalf("unexpected preview request: %+v", calls[0])
 	}
-	if calls[1].path != "/v1/mail/audiences/audience%2Fid/imports" || calls[1].body["mode"] != "confirmation" {
+	if calls[1].path != "/api/v1/mail/audiences/audience%2Fid/imports" || calls[1].body["mode"] != "confirmation" {
 		t.Fatalf("unexpected commit request: %+v", calls[1])
 	}
 	if calls[2].method != "PUT" || !reflect.DeepEqual(calls[2].body["editableFields"], []any{}) {

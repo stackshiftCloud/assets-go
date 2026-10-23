@@ -36,7 +36,7 @@ func TestMailSendUsesPublicMailBaseURL(t *testing.T) {
 	if resp.ID != "msg_123" || resp.IdempotencyStatus != "created" {
 		t.Fatalf("unexpected send response: %+v", resp)
 	}
-	if seen.URL.String() != "https://api.stackshift.cloud/v1/mail/send" {
+	if seen.URL.String() != "https://api.stackshift.cloud/api/v1/mail/send" {
 		t.Fatalf("unexpected URL: %s", seen.URL.String())
 	}
 	if seen.Header.Get("Authorization") != "Bearer sk_test" {

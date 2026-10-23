@@ -1,0 +1,155 @@
+{
+  "key_id": "fixture-action-key",
+  "secret": "fixture-only-secret-00000000000000000000000000000000",
+  "now": 1800000100,
+  "installation_id": "00000000-0000-4000-8000-000000000002",
+  "actions": [
+    {
+      "name": "account.update",
+      "version": "1.0.0",
+      "endpoint": "https://example.com/actions/update",
+      "reconciliation_endpoint": "https://example.com/actions/reconcile",
+      "input": {
+        "display_name": {
+          "type": "string",
+          "required": true,
+          "max_length": 100
+        }
+      },
+      "output": {
+        "updated": {
+          "type": "boolean",
+          "required": true
+        }
+      },
+      "risk": "customer_change",
+      "identity_required": true,
+      "idempotency_supported": true,
+      "safe_retry": false,
+      "timeout_seconds": 10,
+      "verification_operation": "account.read"
+    },
+    {
+      "name": "account.read",
+      "version": "1.0.0",
+      "endpoint": "https://example.com/actions/update",
+      "input": {},
+      "output": {
+        "updated": {
+          "type": "boolean",
+          "required": true
+        }
+      },
+      "risk": "read",
+      "identity_required": true,
+      "idempotency_supported": true,
+      "safe_retry": false,
+      "timeout_seconds": 10
+    }
+  ],
+  "vectors": [
+    {
+      "name": "valid",
+      "raw_body": "{\"schema\":\"stackshift.support.action/v1\",\"request_id\":\"00000000-0000-4000-8000-000000000001\",\"installation_id\":\"00000000-0000-4000-8000-000000000002\",\"installation_revision\":1,\"app_version_id\":\"00000000-0000-4000-8000-000000000003\",\"action\":{\"name\":\"account.update\",\"version\":\"1.0.0\"},\"scope\":{\"workspace_id\":\"00000000-0000-4000-8000-000000000004\",\"environment_id\":\"00000000-0000-4000-8000-000000000005\",\"inbox_id\":\"00000000-0000-4000-8000-000000000006\",\"conversation_id\":\"00000000-0000-4000-8000-000000000007\",\"contact_id\":\"00000000-0000-4000-8000-000000000008\"},\"customer\":{\"external_id\":\"customer-fixture\"},\"arguments\":{\"display_name\":\"José\"},\"authorization\":{\"revision\":1,\"mode\":\"staff\"},\"issued_at\":1800000000,\"expires_at\":1800003600,\"mode\":\"execute\"}",
+      "headers": {
+        "x-stackshift-action-key-id": "fixture-action-key",
+        "x-stackshift-timestamp": "1800000100",
+        "x-stackshift-delivery-id": "00000000-0000-4000-8000-000000000010",
+        "x-stackshift-action-signature": "v1=3e045e544ee90d9f8fa4e9d3d6255deab7b06735e99e54b61d418243f9f9e635"
+      },
+      "expected_customer_external_id": "customer-fixture",
+      "error": null
+    },
+    {
+      "name": "stale",
+      "raw_body": "{\"schema\":\"stackshift.support.action/v1\",\"request_id\":\"00000000-0000-4000-8000-000000000001\",\"installation_id\":\"00000000-0000-4000-8000-000000000002\",\"installation_revision\":1,\"app_version_id\":\"00000000-0000-4000-8000-000000000003\",\"action\":{\"name\":\"account.update\",\"version\":\"1.0.0\"},\"scope\":{\"workspace_id\":\"00000000-0000-4000-8000-000000000004\",\"environment_id\":\"00000000-0000-4000-8000-000000000005\",\"inbox_id\":\"00000000-0000-4000-8000-000000000006\",\"conversation_id\":\"00000000-0000-4000-8000-000000000007\",\"contact_id\":\"00000000-0000-4000-8000-000000000008\"},\"customer\":{\"external_id\":\"customer-fixture\"},\"arguments\":{\"display_name\":\"José\"},\"authorization\":{\"revision\":1,\"mode\":\"staff\"},\"issued_at\":1800000000,\"expires_at\":1800003600,\"mode\":\"execute\"}",
+      "headers": {
+        "x-stackshift-action-key-id": "fixture-action-key",
+        "x-stackshift-timestamp": "1799999799",
+        "x-stackshift-delivery-id": "00000000-0000-4000-8000-000000000010",
+        "x-stackshift-action-signature": "v1=e2a1637962c1f7b6246bf7e3c52a0e1df2b315a7f4f8485424c597b19120e47b"
+      },
+      "expected_customer_external_id": "customer-fixture",
+      "error": "stale_signature"
+    },
+    {
+      "name": "future",
+      "raw_body": "{\"schema\":\"stackshift.support.action/v1\",\"request_id\":\"00000000-0000-4000-8000-000000000001\",\"installation_id\":\"00000000-0000-4000-8000-000000000002\",\"installation_revision\":1,\"app_version_id\":\"00000000-0000-4000-8000-000000000003\",\"action\":{\"name\":\"account.update\",\"version\":\"1.0.0\"},\"scope\":{\"workspace_id\":\"00000000-0000-4000-8000-000000000004\",\"environment_id\":\"00000000-0000-4000-8000-000000000005\",\"inbox_id\":\"00000000-0000-4000-8000-000000000006\",\"conversation_id\":\"00000000-0000-4000-8000-000000000007\",\"contact_id\":\"00000000-0000-4000-8000-000000000008\"},\"customer\":{\"external_id\":\"customer-fixture\"},\"arguments\":{\"display_name\":\"José\"},\"authorization\":{\"revision\":1,\"mode\":\"staff\"},\"issued_at\":1800000000,\"expires_at\":1800003600,\"mode\":\"execute\"}",
+      "headers": {
+        "x-stackshift-action-key-id": "fixture-action-key",
+        "x-stackshift-timestamp": "1800000401",
+        "x-stackshift-delivery-id": "00000000-0000-4000-8000-000000000010",
+        "x-stackshift-action-signature": "v1=a9f50939e7c39a036444e40a9d96b2fe44c73fec8ec3b5084d3013b0a6a6c14f"
+      },
+      "expected_customer_external_id": "customer-fixture",
+      "error": "stale_signature"
+    },
+    {
+      "name": "wrong_customer",
+      "raw_body": "{\"schema\":\"stackshift.support.action/v1\",\"request_id\":\"00000000-0000-4000-8000-000000000001\",\"installation_id\":\"00000000-0000-4000-8000-000000000002\",\"installation_revision\":1,\"app_version_id\":\"00000000-0000-4000-8000-000000000003\",\"action\":{\"name\":\"account.update\",\"version\":\"1.0.0\"},\"scope\":{\"workspace_id\":\"00000000-0000-4000-8000-000000000004\",\"environment_id\":\"00000000-0000-4000-8000-000000000005\",\"inbox_id\":\"00000000-0000-4000-8000-000000000006\",\"conversation_id\":\"00000000-0000-4000-8000-000000000007\",\"contact_id\":\"00000000-0000-4000-8000-000000000008\"},\"customer\":{\"external_id\":\"customer-fixture\"},\"arguments\":{\"display_name\":\"José\"},\"authorization\":{\"revision\":1,\"mode\":\"staff\"},\"issued_at\":1800000000,\"expires_at\":1800003600,\"mode\":\"execute\"}",
+      "headers": {
+        "x-stackshift-action-key-id": "fixture-action-key",
+        "x-stackshift-timestamp": "1800000100",
+        "x-stackshift-delivery-id": "00000000-0000-4000-8000-000000000010",
+        "x-stackshift-action-signature": "v1=3e045e544ee90d9f8fa4e9d3d6255deab7b06735e99e54b61d418243f9f9e635"
+      },
+      "expected_customer_external_id": "another-customer",
+      "error": "binding_mismatch"
+    },
+    {
+      "name": "duplicate_json_key",
+      "raw_body": "{\"schema\":\"stackshift.support.action/v1\",\"request_id\":\"00000000-0000-4000-8000-000000000001\",\"installation_id\":\"00000000-0000-4000-8000-000000000002\",\"installation_revision\":1,\"installation_revision\":2,\"app_version_id\":\"00000000-0000-4000-8000-000000000003\",\"action\":{\"name\":\"account.update\",\"version\":\"1.0.0\"},\"scope\":{\"workspace_id\":\"00000000-0000-4000-8000-000000000004\",\"environment_id\":\"00000000-0000-4000-8000-000000000005\",\"inbox_id\":\"00000000-0000-4000-8000-000000000006\",\"conversation_id\":\"00000000-0000-4000-8000-000000000007\",\"contact_id\":\"00000000-0000-4000-8000-000000000008\"},\"customer\":{\"external_id\":\"customer-fixture\"},\"arguments\":{\"display_name\":\"José\"},\"authorization\":{\"revision\":1,\"mode\":\"staff\"},\"issued_at\":1800000000,\"expires_at\":1800003600,\"mode\":\"execute\"}",
+      "headers": {
+        "x-stackshift-action-key-id": "fixture-action-key",
+        "x-stackshift-timestamp": "1800000100",
+        "x-stackshift-delivery-id": "00000000-0000-4000-8000-000000000010",
+        "x-stackshift-action-signature": "v1=f05f4773001af25794eddf7a46578409402f1fadd08df1204dc5a87094d798bf"
+      },
+      "expected_customer_external_id": "customer-fixture",
+      "error": "invalid_request"
+    },
+    {
+      "name": "raw_digest_conflict",
+      "raw_body": "{\"schema\":\"stackshift.support.action/v1\",\"request_id\":\"00000000-0000-4000-8000-000000000001\",\"installation_id\":\"00000000-0000-4000-8000-000000000002\",\"installation_revision\":1,\"app_version_id\":\"00000000-0000-4000-8000-000000000003\",\"action\":{\"name\":\"account.update\",\"version\":\"1.0.0\"},\"scope\":{\"workspace_id\":\"00000000-0000-4000-8000-000000000004\",\"environment_id\":\"00000000-0000-4000-8000-000000000005\",\"inbox_id\":\"00000000-0000-4000-8000-000000000006\",\"conversation_id\":\"00000000-0000-4000-8000-000000000007\",\"contact_id\":\"00000000-0000-4000-8000-000000000008\"},\"customer\":{\"external_id\":\"customer-fixture\"},\"arguments\":{\"display_name\":\"José\"},\"authorization\":{\"revision\":1,\"mode\":\"staff\"},\"issued_at\":1800000000,\"expires_at\":1800003600,\"mode\":\"execute\"} ",
+      "headers": {
+        "x-stackshift-action-key-id": "fixture-action-key",
+        "x-stackshift-timestamp": "1800000100",
+        "x-stackshift-delivery-id": "00000000-0000-4000-8000-000000000011",
+        "x-stackshift-action-signature": "v1=09eb411b09939976b7de7bd0a523a15b35b232fc7e104070292b0af97b9bd703"
+      },
+      "expected_customer_external_id": "customer-fixture",
+      "error": null
+    },
+    {
+      "name": "reconciliation",
+      "raw_body": "{\"schema\":\"stackshift.support.action/v1\",\"request_id\":\"00000000-0000-4000-8000-000000000020\",\"installation_id\":\"00000000-0000-4000-8000-000000000002\",\"installation_revision\":1,\"app_version_id\":\"00000000-0000-4000-8000-000000000003\",\"action\":{\"name\":\"account.update\",\"version\":\"1.0.0\"},\"scope\":{\"workspace_id\":\"00000000-0000-4000-8000-000000000004\",\"environment_id\":\"00000000-0000-4000-8000-000000000005\",\"inbox_id\":\"00000000-0000-4000-8000-000000000006\",\"conversation_id\":\"00000000-0000-4000-8000-000000000007\",\"contact_id\":\"00000000-0000-4000-8000-000000000008\"},\"customer\":{\"external_id\":\"customer-fixture\"},\"arguments\":{},\"authorization\":{\"revision\":1,\"mode\":\"staff\"},\"issued_at\":1800000000,\"expires_at\":1800003600,\"mode\":\"reconcile\",\"target_request_id\":\"00000000-0000-4000-8000-000000000001\"}",
+      "headers": {
+        "x-stackshift-action-key-id": "fixture-action-key",
+        "x-stackshift-timestamp": "1800000100",
+        "x-stackshift-delivery-id": "00000000-0000-4000-8000-000000000012",
+        "x-stackshift-action-signature": "v1=c0864b13929927ec1d887da44ab734b7aa3c5306e79ef51527b2c2d390cb5145"
+      },
+      "expected_customer_external_id": "customer-fixture",
+      "error": null
+    }
+  ],
+  "receipt": {
+    "raw_body": "{\"schema\":\"stackshift.support.action-receipt/v1\",\"request_id\":\"00000000-0000-4000-8000-000000000001\",\"state\":\"succeeded\",\"result\":{\"updated\":true}}",
+    "headers": {
+      "x-stackshift-action-key-id": "fixture-action-key",
+      "x-stackshift-timestamp": "1800000100",
+      "x-stackshift-delivery-id": "00000000-0000-4000-8000-000000000010",
+      "x-stackshift-action-signature": "v1=ec9cef53f8c14f903bc7f73ce8f09cc2623dd1826f06ad44818309a36ff21833"
+    }
+  },
+  "durable_scenarios": [
+    "duplicate_delivery_rejected",
+    "new_delivery_replays_completed",
+    "raw_digest_conflict",
+    "running_never_redispatched",
+    "unknown_write_never_redispatched",
+    "reconciliation_uses_separate_handler",
+    "fenced_terminal_save",
+    "disk_restart_replays_receipt"
+  ]
+}

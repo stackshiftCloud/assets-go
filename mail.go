@@ -12,29 +12,35 @@ type MailClient struct {
 	Forms       *MailFormsClient
 	Segments    *MailSegmentsClient
 
-	Billing      *MailBillingClient
-	Migration    *MailMigrationClient
-	Tracking     *MailTrackingClient
-	client       *Client
-	Domains      *MailDomainsClient
-	Messages     *MailMessagesClient
-	Suppressions *MailSuppressionsClient
-	Bounces      *MailBouncesClient
-	OTP          *MailOTPClient
-	Templates    *MailTemplatesClient
-	Events       *MailEventsClient
-	Webhooks     *MailWebhooksClient
-	Streams      *MailStreamsClient
-	Brands       *MailBrandsClient
-	Audiences    *MailAudiencesClient
-	Campaigns    *MailCampaignsClient
-	Exports      *MailExportsClient
-	Limits       *MailLimitsClient
-	Reputation   *MailReputationClient
-	Scheduled    *MailScheduledClient
-	Batch        *MailBatchClient
-	Inbound      *MailInboundClient
-	Analytics    *MailAnalyticsClient
+	Billing        *MailBillingClient
+	Migration      *MailMigrationClient
+	Tracking       *MailTrackingClient
+	client         *Client
+	Domains        *MailDomainsClient
+	Messages       *MailMessagesClient
+	Suppressions   *MailSuppressionsClient
+	Bounces        *MailBouncesClient
+	OTP            *MailOTPClient
+	Templates      *MailTemplatesClient
+	Events         *MailEventsClient
+	Webhooks       *MailWebhooksClient
+	Streams        *MailStreamsClient
+	Brands         *MailBrandsClient
+	Audiences      *MailAudiencesClient
+	Campaigns      *MailCampaignsClient
+	Exports        *MailExportsClient
+	MailboxDomains *MailboxDomainsClient
+	Mailboxes      *MailboxesClient
+	Aliases        *MailboxAliasesClient
+	Groups         *MailboxGroupsClient
+	Routes         *MailboxRoutesClient
+	MailboxImports *MailboxImportsClient
+	Limits         *MailLimitsClient
+	Reputation     *MailReputationClient
+	Scheduled      *MailScheduledClient
+	Batch          *MailBatchClient
+	Inbound        *MailInboundClient
+	Analytics      *MailAnalyticsClient
 }
 
 type MailDomainsClient struct {

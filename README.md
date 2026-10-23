@@ -186,6 +186,45 @@ message, err := client.Mail.Send(context.Background(), stackshift.MailSendReques
 
 Add the returned SPF, DKIM, and return-path DNS records before verification. DMARC is recommended unless your environment sets `MAIL_DMARC_REQUIRED=true`. DNS propagation can take time.
 
+## Mailboxes
+
+Host real mailboxes on your own domain. The mailbox owner gets an invitation by email and sets their own password.
+
+```go
+ctx := context.Background()
+
+domain, err := client.Mail.MailboxDomains.Create(ctx, "acme.com")
+if err != nil {
+	log.Fatal(err)
+}
+
+log.Println(domain.Records)
+
+if _, err = client.Mail.MailboxDomains.Verify(ctx, domain.ID); err != nil {
+	log.Fatal(err)
+}
+
+mailbox, err := client.Mail.Mailboxes.Create(ctx, stackshift.MailboxCreateRequest{
+	DomainID:   domain.ID,
+	LocalPart:  "ada",
+	OwnerEmail: "ada@personal.example",
+	Plan:       "basic",
+})
+if err != nil {
+	log.Fatal(err)
+}
+
+_, err = client.Mail.Aliases.Create(ctx, stackshift.MailboxAliasCreateRequest{MailboxID: mailbox.ID, LocalPart: "sales", SendAs: true})
+_, err = client.Mail.Routes.Create(ctx, stackshift.MailboxRouteCreateRequest{
+	DomainID: domain.ID,
+	Pattern:  "orders-*",
+	Targets:  []stackshift.MailboxRouteTarget{{Kind: "app", WebhookURL: "https://app.example.com/inbound"}},
+})
+_, err = client.Mail.Mailboxes.Suspend(ctx, mailbox.ID)
+```
+
+`client.Mail.Groups` manages team addresses, and `client.Mail.MailboxImports` copies mail from Google, Microsoft or any IMAP server.
+
 ## Upload an asset
 
 ```go
@@ -343,3 +382,24 @@ preview, err := platform.Migrations.Start(ctx, map[string]any{
 if err != nil { return err }
 _, err = platform.Migrations.Report(ctx, preview["id"].(string))
 ```
+
+## Support action receivers (unreleased)
+
+Import `github.com/stackshiftCloud/assets-go/supportactions` for app/v2 manifest and installation-consent types, `ValidateCatalog`, `Verify`, `Receive`, `Sign`, `EncodeReceipt`, `VerifyReceipt`, and the `DurableStore` interface. V1 manifests stay actionless. Writes require idempotency, reconciliation and a registered read verifier; installation consent selects `action_operations`. These helpers never register, grant, publish or call a provider.
+
+`Receive(ctx, rawBytes, headers, verification, store, execute, reconcile)` authenticates exact raw bytes before dispatch. Supply the expected action key/secret, installation ID, exact registered actions and trusted expected customer external ID. Never copy an unverified request identity into verification. Handlers return a `Receipt` (state/result/safe error code); the receiver binds schema/request ID and signs the response. Return `SignedResponse.Body` unchanged with its headers. A handler error records unknown. Running/unknown claims are never re-acquired; a distinct reconciliation request calls only the explicit reconciliation handler. Accepted work remains durably replayable, with no asynchronous callback endpoint in this version.
+
+`NewSQLiteStore` accepts a caller-owned `database/sql` connection without adding a driver dependency to the core Go1.22 SDK. Configure every connection for WAL, FULL synchronization and a busy timeout. Use a persistent disk file, not an in-memory store. `examples/support-action-receiver` is a separate runnable stdin receiver module declaring Go1.25 and `modernc.org/sqlite v1.54.0`; it intentionally returns `demo_not_implemented` until handlers are connected to real business transactions. Set `ACTION_KEY_ID`, `ACTION_SECRET`, `ACTION_INSTALLATION_ID` and trusted `EXPECTED_CUSTOMER_EXTERNAL_ID`, then:
+
+```sh
+go test -race ./supportactions
+go vet ./supportactions
+cd examples/support-action-receiver
+go mod tidy
+go run . /absolute/path/claims.sqlite headers.json actions.json < body.json
+go test -race ./...
+```
+
+The example driver requires its declared dependencies. Final local qualification downloaded them and passed the SQLite two-connection concurrency, restart and fencing test under the race detector. Core SDK race tests and shared cross-language signature/orchestration conformance also pass. These local results do not establish live installation or provider qualification.
+
+See `../support-actions-conformance/README.md` for exact signing and host ingress requirements. Retain uncertain claims; never expire them to rerun mutations. Use downstream idempotency or an atomic business/receipt transaction, because a local claim cannot make a remote side effect exactly once. SQLite is a single-host example; multi-host receivers need shared transactional storage. All additions are unreleased.

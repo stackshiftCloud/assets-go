@@ -87,7 +87,7 @@ type MailCampaignCreateRequest struct {
 	SegmentID         string                 `json:"segmentId,omitempty"`
 	ReplyTo           string                 `json:"replyTo,omitempty"`
 	Tracking          *MailTrackingOptions   `json:"tracking,omitempty"`
-	Name              string                 `json:"name"`
+	Name              string                 `json:"name,omitempty"`
 	AudienceID        string                 `json:"audienceId"`
 	Template          string                 `json:"template"`
 	VersionID         string                 `json:"versionId,omitempty"`

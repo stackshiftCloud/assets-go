@@ -13,7 +13,7 @@ import (
 )
 
 const DefaultBaseURL = "https://api.stackshift.cloud/api/v1"
-const DefaultMailBaseURL = "https://api.stackshift.cloud/v1"
+const DefaultMailBaseURL = "https://api.stackshift.cloud/api/v1"
 const DefaultCDNBaseURL = "https://cdn.stackshift.cloud"
 
 type HTTPDoer interface {
@@ -103,16 +103,22 @@ func New(options Options) (*Client, error) {
 		Forms:        &MailFormsClient{client: client},
 		Segments:     &MailSegmentsClient{client: client},
 
-		Migration: &MailMigrationClient{client: client},
-		Brands:    &MailBrandsClient{client: client},
-		Audiences: &MailAudiencesClient{client: client},
-		Campaigns: &MailCampaignsClient{client: client},
-		Tracking:  &MailTrackingClient{client: client},
-		Exports:   &MailExportsClient{client: client},
-		Limits:    &MailLimitsClient{client: client},
-		Scheduled: &MailScheduledClient{client: client},
-		Batch:     &MailBatchClient{client: client},
-		Analytics: &MailAnalyticsClient{client: client},
+		Migration:      &MailMigrationClient{client: client},
+		Brands:         &MailBrandsClient{client: client},
+		Audiences:      &MailAudiencesClient{client: client},
+		Campaigns:      &MailCampaignsClient{client: client},
+		Tracking:       &MailTrackingClient{client: client},
+		Exports:        &MailExportsClient{client: client},
+		MailboxDomains: &MailboxDomainsClient{client: client},
+		Mailboxes:      &MailboxesClient{client: client},
+		Aliases:        &MailboxAliasesClient{client: client},
+		Groups:         &MailboxGroupsClient{client: client},
+		Routes:         &MailboxRoutesClient{client: client},
+		MailboxImports: &MailboxImportsClient{client: client},
+		Limits:         &MailLimitsClient{client: client},
+		Scheduled:      &MailScheduledClient{client: client},
+		Batch:          &MailBatchClient{client: client},
+		Analytics:      &MailAnalyticsClient{client: client},
 	}
 	client.Mail.Inbound = &MailInboundClient{
 		client:   client,
