@@ -27,6 +27,7 @@ const (
 // AssetTransformOperation describes one ordered image or video operation.
 type AssetTransformOperation struct {
 	Type             string  `json:"type"`
+	Focus            string  `json:"focus,omitempty"`
 	Mode             string  `json:"mode,omitempty"`
 	Gravity          string  `json:"gravity,omitempty"`
 	Width            int     `json:"width,omitempty"`
@@ -57,6 +58,18 @@ type AssetTransformOutput struct {
 type AssetTransformMaterializeInput struct {
 	Definition *AssetTransformDefinition `json:"definition,omitempty"`
 	Preset     string                    `json:"preset,omitempty"`
+}
+
+type AssetTransformEstimate struct {
+	CostMicros int64                        `json:"cost_micros"`
+	Currency   string                       `json:"currency"`
+	Steps      []AssetTransformEstimateStep `json:"steps"`
+}
+
+type AssetTransformEstimateStep struct {
+	Index      int    `json:"index"`
+	Type       string `json:"type"`
+	CostMicros int64  `json:"cost_micros"`
 }
 
 // AssetDerivedAsset describes a persisted, replicated transform output.
@@ -99,6 +112,19 @@ func (a *AssetsClient) CreateTransformationV2(
 		"name": name, "definition": definition, "eager": eager,
 	}, &transformation)
 	return &transformation, err
+}
+
+func (a *AssetsClient) EstimateTransform(
+	ctx context.Context,
+	assetID, versionID string,
+	definition AssetTransformDefinition,
+) (*AssetTransformEstimate, error) {
+	var estimate AssetTransformEstimate
+	if err := a.client.request(ctx, http.MethodPost, "/assets/"+url.PathEscape(assetID)+"/transforms/estimate",
+		map[string]any{"version_id": versionID, "definition": definition}, &estimate); err != nil {
+		return nil, err
+	}
+	return &estimate, nil
 }
 
 // MaterializeTransform enqueues a persisted transform output. Input must select one definition or preset.

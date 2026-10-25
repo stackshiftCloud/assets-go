@@ -575,6 +575,51 @@ type AssetWebhookDelivery struct {
 	DeliveredAt     string         `json:"delivered_at,omitempty"`
 }
 
+type AssetReferrerUsage struct {
+	WindowDays int                     `json:"window_days"`
+	Referrers  []AssetReferrerRequests `json:"referrers"`
+}
+
+type AssetReferrerRequests struct {
+	Host     string `json:"host"`
+	Requests int64  `json:"requests"`
+}
+
+type AssetHoldFile struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type AssetHoldUpload struct {
+	WindowMinutes int             `json:"window_minutes"`
+	Files         int             `json:"files"`
+	Held          []AssetHoldFile `json:"held"`
+}
+
+type AssetHoldDetail struct {
+	Kind        string          `json:"kind"`
+	Finding     string          `json:"finding"`
+	Explanation string          `json:"explanation"`
+	ExplainedBy string          `json:"explained_by"`
+	VersionID   string          `json:"version_id"`
+	Upload      AssetHoldUpload `json:"upload"`
+	SameContent int             `json:"same_content"`
+}
+
+type AssetReuploadRequestInput struct {
+	Email   string `json:"email,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+type AssetReuploadRequest struct {
+	ID          string     `json:"id"`
+	Email       string     `json:"email"`
+	Status      string     `json:"status"`
+	ExpiresAt   time.Time  `json:"expires_at"`
+	CreatedAt   time.Time  `json:"created_at"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+}
+
 type AssetUsageSummary struct {
 	TotalAssets             int              `json:"total_assets"`
 	TotalBytes              int64            `json:"total_bytes"`

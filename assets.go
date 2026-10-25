@@ -121,6 +121,40 @@ func (a *AssetsClient) Get(ctx context.Context, assetID string) (*Asset, error) 
 	return &asset, nil
 }
 
+func (a *AssetsClient) Usage(ctx context.Context, assetID string) (*AssetReferrerUsage, error) {
+	var usage AssetReferrerUsage
+	if err := a.client.request(ctx, http.MethodGet, "/assets/"+url.PathEscape(assetID)+"/usage", nil, &usage); err != nil {
+		return nil, err
+	}
+	return &usage, nil
+}
+
+func (a *AssetsClient) Hold(ctx context.Context, assetID string) (*AssetHoldDetail, error) {
+	var hold AssetHoldDetail
+	if err := a.client.request(ctx, http.MethodGet, "/assets/"+url.PathEscape(assetID)+"/hold", nil, &hold); err != nil {
+		return nil, err
+	}
+	return &hold, nil
+}
+
+func (a *AssetsClient) CreateReuploadRequest(ctx context.Context, assetID string, input AssetReuploadRequestInput) (*AssetReuploadRequest, error) {
+	var request AssetReuploadRequest
+	if err := a.client.request(ctx, http.MethodPost, "/assets/"+url.PathEscape(assetID)+"/reupload-requests", input, &request); err != nil {
+		return nil, err
+	}
+	return &request, nil
+}
+
+func (a *AssetsClient) ReuploadRequests(ctx context.Context, assetID string) ([]AssetReuploadRequest, error) {
+	var result struct {
+		Requests []AssetReuploadRequest `json:"requests"`
+	}
+	if err := a.client.request(ctx, http.MethodGet, "/assets/"+url.PathEscape(assetID)+"/reupload-requests", nil, &result); err != nil {
+		return nil, err
+	}
+	return result.Requests, nil
+}
+
 func (a *AssetsClient) Delete(ctx context.Context, assetID string, revision int64) (*AssetJobSubmission, error) {
 	return a.DeleteWithIdempotency(ctx, assetID, revision, "")
 }

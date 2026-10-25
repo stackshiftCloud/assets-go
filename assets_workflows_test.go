@@ -23,6 +23,22 @@ func TestAssetV2TransformAndWorkflowRoutes(t *testing.T) {
 				t.Fatalf("unexpected transform request: headers=%v body=%s", req.Header, body)
 			}
 			return jsonResponse(http.StatusAccepted, `{"success":true,"data":{"job_id":"job_1","status":"queued","status_url":"/api/v1/assets/jobs/job_1"}}`), nil
+		case strings.HasSuffix(req.URL.Path, "/assets/asset_1/transforms/estimate"):
+			if !strings.Contains(string(body), `"version_id":"version_1"`) || !strings.Contains(string(body), `"type":"remove_background"`) {
+				t.Fatalf("unexpected estimate request: %s", body)
+			}
+			return jsonResponse(http.StatusOK, `{"success":true,"data":{"cost_micros":30000,"currency":"USD","steps":[{"index":1,"type":"remove_background","cost_micros":30000}]}}`), nil
+		case strings.HasSuffix(req.URL.Path, "/assets/asset_1/usage"):
+			return jsonResponse(http.StatusOK, `{"success":true,"data":{"window_days":30,"referrers":[{"host":"shop.example.com","requests":120}]}}`), nil
+		case strings.HasSuffix(req.URL.Path, "/assets/asset_1/hold"):
+			return jsonResponse(http.StatusOK, `{"success":true,"data":{"kind":"scan","finding":"f","explanation":"e","explained_by":"scan_result","version_id":"version_1","upload":{"window_minutes":10,"files":1,"held":[{"id":"asset_1","name":"a.zip"}]},"same_content":0}}`), nil
+		case strings.HasSuffix(req.URL.Path, "/assets/asset_1/reupload-requests") && req.Method == http.MethodPost:
+			if !strings.Contains(string(body), `"email":"owner@example.com"`) {
+				t.Fatalf("unexpected reupload request: %s", body)
+			}
+			return jsonResponse(http.StatusCreated, `{"success":true,"data":{"id":"req_1","email":"owner@example.com","status":"sent","expires_at":"2026-08-25T00:00:00Z","created_at":"2026-08-18T00:00:00Z"}}`), nil
+		case strings.HasSuffix(req.URL.Path, "/assets/asset_1/reupload-requests"):
+			return jsonResponse(http.StatusOK, `{"success":true,"data":{"requests":[{"id":"req_1","email":"owner@example.com","status":"sent","expires_at":"2026-08-25T00:00:00Z","created_at":"2026-08-18T00:00:00Z"}]}}`), nil
 		case strings.HasSuffix(req.URL.Path, "/assets/workflows/catalog"):
 			return jsonResponse(http.StatusOK, `{"success":true,"data":{"nodes":[{"type":"trigger.manual","version":"1","name":"Manual","category":"Triggers","description":"Manual trigger","input_ports":[],"output_ports":[],"config_schema":{},"risk":"read","requires_approval":false,"approval_mode":"none"}],"templates":[]}}`), nil
 		case strings.HasSuffix(req.URL.Path, "/assets/workflows/wf_1/publish"):
@@ -52,6 +68,31 @@ func TestAssetV2TransformAndWorkflowRoutes(t *testing.T) {
 		t.Fatalf("job=%+v err=%v", job, err)
 	}
 
+	estimate, err := client.Assets.EstimateTransform(context.Background(), "asset_1", "version_1", AssetTransformDefinition{
+		Version: 2, MediaKind: "image", Operations: []AssetTransformOperation{{Type: "remove_background"}},
+		Output: AssetTransformOutput{Kind: "image", Format: "webp"},
+	})
+	if err != nil || estimate.CostMicros != 30000 || len(estimate.Steps) != 1 {
+		t.Fatalf("estimate=%+v err=%v", estimate, err)
+	}
+
+	usage, err := client.Assets.Usage(context.Background(), "asset_1")
+	if err != nil || usage.Referrers[0].Requests != 120 {
+		t.Fatalf("usage=%+v err=%v", usage, err)
+	}
+	hold, err := client.Assets.Hold(context.Background(), "asset_1")
+	if err != nil || hold.Upload.Held[0].Name != "a.zip" {
+		t.Fatalf("hold=%+v err=%v", hold, err)
+	}
+	reupload, err := client.Assets.CreateReuploadRequest(context.Background(), "asset_1", AssetReuploadRequestInput{Email: "owner@example.com"})
+	if err != nil || reupload.Status != "sent" {
+		t.Fatalf("reupload=%+v err=%v", reupload, err)
+	}
+	reuploads, err := client.Assets.ReuploadRequests(context.Background(), "asset_1")
+	if err != nil || len(reuploads) != 1 {
+		t.Fatalf("reuploads=%+v err=%v", reuploads, err)
+	}
+
 	catalog, err := client.Assets.WorkflowCatalog(context.Background())
 	if err != nil || len(catalog.Nodes) != 1 {
 		t.Fatalf("catalog=%+v err=%v", catalog, err)
@@ -66,7 +107,7 @@ func TestAssetV2TransformAndWorkflowRoutes(t *testing.T) {
 	if err != nil || connection.ID != "connection_1" {
 		t.Fatalf("connection=%+v err=%v", connection, err)
 	}
-	if len(requests) != 4 {
+	if len(requests) != 9 {
 		t.Fatalf("requests=%d", len(requests))
 	}
 }
