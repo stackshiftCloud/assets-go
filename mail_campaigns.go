@@ -111,6 +111,14 @@ func (m *MailAudiencesClient) List(ctx context.Context) ([]MailAudience, error) 
 	return out.Data, err
 }
 
+func (m *MailAudiencesClient) ListForBrand(ctx context.Context, brandID string) ([]MailAudience, error) {
+	var out struct {
+		Data []MailAudience `json:"data"`
+	}
+	err := m.client.mailRequest(ctx, http.MethodGet, "/mail/audiences?brandId="+url.QueryEscape(brandID), nil, &out)
+	return out.Data, err
+}
+
 func (m *MailAudiencesClient) Get(ctx context.Context, id string) (*MailAudience, error) {
 	var out MailAudience
 	err := m.client.mailRequest(ctx, http.MethodGet, "/mail/audiences/"+url.PathEscape(id), nil, &out)
@@ -142,6 +150,14 @@ func (m *MailCampaignsClient) List(ctx context.Context) ([]MailCampaign, error) 
 		Data []MailCampaign `json:"data"`
 	}
 	err := m.client.mailRequest(ctx, http.MethodGet, "/mail/campaigns", nil, &out)
+	return out.Data, err
+}
+
+func (m *MailCampaignsClient) ListForBrand(ctx context.Context, brandID string) ([]MailCampaign, error) {
+	var out struct {
+		Data []MailCampaign `json:"data"`
+	}
+	err := m.client.mailRequest(ctx, http.MethodGet, "/mail/campaigns?brandId="+url.QueryEscape(brandID), nil, &out)
 	return out.Data, err
 }
 

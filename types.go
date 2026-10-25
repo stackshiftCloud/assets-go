@@ -188,10 +188,11 @@ type MailLog struct {
 }
 
 type MailSuppressionListOptions struct {
-	Email  string
-	Reason string
-	Limit  int
-	Cursor string
+	Email   string
+	Reason  string
+	BrandID string
+	Limit   int
+	Cursor  string
 }
 
 type MailSuppressionCreateRequest struct {

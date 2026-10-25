@@ -14,6 +14,15 @@ type MailEvent struct {
 	CreatedAt    time.Time      `json:"createdAt"`
 }
 
+type MailCampaignStoppedEvent struct {
+	CampaignID  string    `json:"campaignId"`
+	BrandID     string    `json:"brandId"`
+	Reason      string    `json:"reason"`
+	PauseReason string    `json:"pauseReason"`
+	PausedSince time.Time `json:"pausedSince"`
+	Message     string    `json:"message"`
+}
+
 type MailEventListOptions struct {
 	Type         string
 	ResourceType string
@@ -60,6 +69,27 @@ type MailWebhook struct {
 	LastSuccessAt *time.Time `json:"lastSuccessAt,omitempty"`
 	LastFailureAt *time.Time `json:"lastFailureAt,omitempty"`
 	CreatedAt     time.Time  `json:"createdAt"`
+
+	WaitingSummary *MailWebhookWaitingSummary `json:"waitingSummary,omitempty"`
+}
+
+type MailWebhookWaitingHighlight struct {
+	Type string `json:"type"`
+	Shop string `json:"shop"`
+}
+
+type MailWebhookWaitingSummary struct {
+	Count           int                           `json:"count"`
+	Capped          bool                          `json:"capped"`
+	OldestAt        time.Time                     `json:"oldestAt"`
+	MerchantUpdates int                           `json:"merchantUpdates"`
+	Highlights      []MailWebhookWaitingHighlight `json:"highlights"`
+}
+
+type MailWebhookDiagnosis struct {
+	CheckedAt   time.Time `json:"checkedAt"`
+	RepliesRead int       `json:"repliesRead"`
+	Summary     string    `json:"summary"`
 }
 
 type MailWebhookCreateRequest struct {
@@ -115,6 +145,15 @@ type MailWebhookDelivery struct {
 	ErrorMessage        *string    `json:"errorMessage,omitempty"`
 	CreatedAt           time.Time  `json:"createdAt"`
 	CompletedAt         *time.Time `json:"completedAt,omitempty"`
+
+	DurationMs *int                         `json:"durationMs,omitempty"`
+	Merchant   *MailWebhookDeliveryMerchant `json:"merchant,omitempty"`
+}
+
+type MailWebhookDeliveryMerchant struct {
+	PartnerDomainID string `json:"partnerDomainId"`
+	MerchantRef     string `json:"merchantRef"`
+	Shop            string `json:"shop"`
 }
 
 type MailWebhookDeliveryAttempt struct {

@@ -103,6 +103,31 @@ func (m *MailWebhooksClient) RotateSecret(ctx context.Context, webhookID string)
 	return result.Secret, err
 }
 
+func (m *MailWebhooksClient) RevealSecret(ctx context.Context, webhookID string) (string, error) {
+	var result struct {
+		Secret string `json:"secret"`
+	}
+	path := "/mail/webhooks/" + url.PathEscape(webhookID) + "/reveal-secret"
+	err := m.client.mailRequest(ctx, http.MethodPost, path, nil, &result)
+	return result.Secret, err
+}
+
+func (m *MailWebhooksClient) Diagnosis(ctx context.Context, webhookID string) (*MailWebhookDiagnosis, error) {
+	return m.diagnosis(ctx, http.MethodGet, webhookID)
+}
+
+func (m *MailWebhooksClient) Diagnose(ctx context.Context, webhookID string) (*MailWebhookDiagnosis, error) {
+	return m.diagnosis(ctx, http.MethodPost, webhookID)
+}
+
+func (m *MailWebhooksClient) diagnosis(ctx context.Context, method, webhookID string) (*MailWebhookDiagnosis, error) {
+	var result struct {
+		Diagnosis *MailWebhookDiagnosis `json:"diagnosis"`
+	}
+	err := m.client.mailRequest(ctx, method, "/mail/webhooks/"+url.PathEscape(webhookID)+"/diagnosis", nil, &result)
+	return result.Diagnosis, err
+}
+
 func (m *MailWebhooksClient) Delete(ctx context.Context, webhookID string) error {
 	return m.client.mailRequest(ctx, http.MethodDelete, "/mail/webhooks/"+url.PathEscape(webhookID), nil, nil)
 }

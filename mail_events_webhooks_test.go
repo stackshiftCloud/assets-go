@@ -153,3 +153,49 @@ func eventsWebhookDeliveryJSON(status string) string {
 func eventsWebhookDeliveryDetailJSON(status string) string {
 	return eventsWebhookDeliveryJSON(status)[:len(eventsWebhookDeliveryJSON(status))-1] + `,"attempts":[{"id":"whda_123","attemptNumber":1,"responseStatus":500,"responseBodySnippet":"failed","errorMessage":"non-2xx response","durationMs":12,"createdAt":"2026-05-09T12:01:00Z"}]}`
 }
+
+func TestMailWebhookInsights(t *testing.T) {
+	client, err := New(Options{
+		APIKey: "sk_test",
+		HTTPClient: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			switch {
+			case req.Method == http.MethodGet && strings.HasSuffix(req.URL.Path, "/mail/webhooks/wh_123"):
+				return jsonResponse(http.StatusOK, eventsWebhookWebhookJSON(`,"waitingSummary":{"count":4,"capped":false,"oldestAt":"2026-05-09T11:00:00Z","merchantUpdates":2,"highlights":[{"type":"partner.brand.paused","shop":"Merchant Shop"}]}`)), nil
+			case req.Method == http.MethodGet && strings.HasSuffix(req.URL.Path, "/mail/webhooks/wh_123/deliveries"):
+				return jsonResponse(http.StatusOK, `{"data":[`+eventsWebhookDeliveryJSON("failed")[:len(eventsWebhookDeliveryJSON("failed"))-1]+`,"durationMs":840,"merchant":{"partnerDomainId":"pd_1","merchantRef":"m_1","shop":"Merchant Shop"}}],"nextCursor":null}`), nil
+			case req.Method == http.MethodPost && strings.HasSuffix(req.URL.Path, "/mail/webhooks/wh_123/reveal-secret"):
+				return jsonResponse(http.StatusOK, `{"secret":"whsec_revealed"}`), nil
+			case req.Method == http.MethodGet && strings.HasSuffix(req.URL.Path, "/mail/webhooks/wh_123/diagnosis"):
+				return jsonResponse(http.StatusOK, `{"diagnosis":null}`), nil
+			case req.Method == http.MethodPost && strings.HasSuffix(req.URL.Path, "/mail/webhooks/wh_123/diagnosis"):
+				return jsonResponse(http.StatusOK, `{"diagnosis":{"checkedAt":"2026-05-09T12:00:00Z","repliesRead":3,"summary":"The endpoint answers 500 to every delivery."}}`), nil
+			default:
+				return jsonResponse(http.StatusNotFound, `{"error":{"code":"not_found","message":"Not found."}}`), nil
+			}
+		}),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	hook, err := client.Mail.Webhooks.Get(ctx, "wh_123")
+	if err != nil || hook.WaitingSummary == nil || hook.WaitingSummary.Count != 4 || hook.WaitingSummary.MerchantUpdates != 2 || hook.WaitingSummary.Highlights[0].Type != "partner.brand.paused" {
+		t.Fatalf("hook=%+v err=%v", hook, err)
+	}
+	deliveries, err := client.Mail.Webhooks.Deliveries(ctx, "wh_123", MailWebhookDeliveryListOptions{})
+	if err != nil || deliveries.Data[0].DurationMs == nil || *deliveries.Data[0].DurationMs != 840 || deliveries.Data[0].Merchant == nil || deliveries.Data[0].Merchant.Shop != "Merchant Shop" {
+		t.Fatalf("deliveries=%+v err=%v", deliveries, err)
+	}
+	secret, err := client.Mail.Webhooks.RevealSecret(ctx, "wh_123")
+	if err != nil || secret != "whsec_revealed" {
+		t.Fatalf("secret=%q err=%v", secret, err)
+	}
+	stored, err := client.Mail.Webhooks.Diagnosis(ctx, "wh_123")
+	if err != nil || stored != nil {
+		t.Fatalf("stored=%+v err=%v", stored, err)
+	}
+	diagnosis, err := client.Mail.Webhooks.Diagnose(ctx, "wh_123")
+	if err != nil || diagnosis.RepliesRead != 3 || diagnosis.Summary != "The endpoint answers 500 to every delivery." {
+		t.Fatalf("diagnosis=%+v err=%v", diagnosis, err)
+	}
+}

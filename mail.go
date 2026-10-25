@@ -214,6 +214,7 @@ func (m *MailSuppressionsClient) List(ctx context.Context, options MailSuppressi
 	query := url.Values{}
 	appendQuery(query, "email", options.Email)
 	appendQuery(query, "reason", options.Reason)
+	appendQuery(query, "brandId", options.BrandID)
 	appendQuery(query, "limit", options.Limit)
 	appendQuery(query, "cursor", options.Cursor)
 	path := "/mail/suppressions"

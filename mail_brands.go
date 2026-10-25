@@ -16,22 +16,35 @@ type MailBrandFields struct {
 	Website         string   `json:"website"`
 	SupportEmail    string   `json:"supportEmail"`
 	EditableFields  []string `json:"editableFields"`
+	MerchantRef     string   `json:"merchantRef"`
 }
 
 type MailBrand struct {
 	MailBrandFields
-	ID          string   `json:"id"`
-	WorkspaceID string   `json:"workspaceId"`
-	Mode        MailMode `json:"mode"`
-	Status      string   `json:"status"`
-	Revision    int      `json:"revision"`
-	CreatedAt   string   `json:"createdAt"`
-	UpdatedAt   string   `json:"updatedAt"`
+	ID                 string           `json:"id"`
+	WorkspaceID        string           `json:"workspaceId"`
+	Mode               MailMode         `json:"mode"`
+	Status             string           `json:"status"`
+	SendingPausedAt    *string          `json:"sendingPausedAt"`
+	SendingPauseReason string           `json:"sendingPauseReason"`
+	SuspendedAt        *string          `json:"suspendedAt"`
+	Revision           int              `json:"revision"`
+	CreatedAt          string           `json:"createdAt"`
+	UpdatedAt          string           `json:"updatedAt"`
+	Warmup             *MailBrandWarmup `json:"warmup,omitempty"`
+}
+
+type MailBrandWarmup struct {
+	Day               int    `json:"day"`
+	TotalDays         int    `json:"totalDays"`
+	MarketingUnlocked bool   `json:"marketingUnlocked"`
+	Status            string `json:"status"`
 }
 
 type MailBrandUpdateRequest struct {
 	MailBrandFields
-	Revision int `json:"revision"`
+	MerchantRef *string `json:"merchantRef,omitempty"`
+	Revision    int     `json:"revision"`
 }
 
 type MailBrandsClient struct{ client *Client }

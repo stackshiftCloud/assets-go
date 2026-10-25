@@ -31,6 +31,7 @@ type Client struct {
 	AICredits        *AICreditsClient
 	Assets           *AssetsClient
 	Mail             *MailClient
+	Partner          *PartnerClient
 	WorkloadSecurity *WorkloadSecurityClient
 }
 
@@ -87,6 +88,7 @@ func New(options Options) (*Client, error) {
 	client.Assets.Storage = &AssetStorageClient{client: client}
 	client.Assets.Migrations = &AssetMigrationsClient{client: client}
 	client.AICredits = &AICreditsClient{client: client}
+	client.Partner = &PartnerClient{client: client}
 	client.WorkloadSecurity = &WorkloadSecurityClient{client: client}
 	client.Mail = &MailClient{
 		client:       client,

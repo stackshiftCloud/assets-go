@@ -24,6 +24,22 @@ funding, err := client.AICredits.SetFunding(ctx, "assets", "managed")
 
 Keep account API keys and checkout creation on your server.
 
+## Partner platforms
+
+Staff-enabled partner accounts buy domains for merchants from their StackShift wallet. Use an API token with the `partner:manage` scope (and `mail:manage` to run campaigns) on your server:
+
+```go
+domain, err := client.Partner.PurchaseDomain(ctx, stackshift.PartnerDomainPurchaseInput{
+	Domain: "merchantshop.com", Years: 1, MerchantRef: "m_123",
+	Registrant: stackshift.PartnerRegistrant{FirstName: "Ada", LastName: "Obi", Email: "ada@merchantshop.com", Phone: "+2348012345678", Address: "1 Marina", City: "Lagos", State: "Lagos", PostalCode: "101001", Country: "NG"},
+	Brand:      stackshift.PartnerBrandInput{Name: "Merchant Shop", PostalAddress: "1 Marina, Lagos, Nigeria"},
+	Replies:    stackshift.PartnerRepliesInput{Mode: "forward", ForwardTo: "ada@gmail.com"},
+}, "order-m_123-1")
+status, err := client.Partner.GetDomain(ctx, domain.ID)
+```
+
+`Partner` also exposes `Overview`, `UpdateSettings`, `ListDomains` (with `Query` and `Attention` to find the merchants that need you), `RetryDomain`, `GetDiagnosis`, `RestoreDNS`, `TransferOut`, `ResumeBrand`, `GetComplaints`, `ListComplaintSources`, `SuppressNeverOpened`, `UndoSuppression`, `Usage`, `ListRequests` and `CreateRequest`. `TransferOut` needs the `partner:transfer` scope (or `*`); `partner:manage` alone is refused. Purchases are capped at 30 per minute and, per partner, at 25 domains in a rolling 24 hours (429 `daily_purchase_limit`; staff can raise it). Validation errors are 400, state conflicts are 409.
+
 ## Send email
 
 ```go

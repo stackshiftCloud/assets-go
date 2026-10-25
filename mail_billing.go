@@ -34,6 +34,17 @@ type MailBillingSummary struct {
 	ReservedKobo           int64               `json:"reservedKobo"`
 	Settings               MailBillingSettings `json:"settings"`
 }
+type MailBillingPeriodUsage struct {
+	Period           string `json:"period"`
+	PlanSlug         string `json:"planSlug,omitempty"`
+	Currency         string `json:"currency"`
+	PeriodStart      string `json:"periodStart"`
+	PeriodEnd        string `json:"periodEnd"`
+	MonthlyPriceKobo int64  `json:"monthlyPriceKobo"`
+	Included         int64  `json:"included"`
+	Used             int64  `json:"used"`
+	SpentKobo        int64  `json:"spentKobo"`
+}
 type MailCampaignEstimate struct {
 	MailBillingSummary
 	RecipientCount     int64    `json:"recipientCount"`
@@ -49,6 +60,11 @@ type MailBillingClient struct{ client *Client }
 func (m *MailBillingClient) Summary(ctx context.Context) (*MailBillingSummary, error) {
 	var out MailBillingSummary
 	err := m.client.mailRequest(ctx, http.MethodGet, "/mail/billing", nil, &out)
+	return &out, err
+}
+func (m *MailBillingClient) PeriodUsage(ctx context.Context, period string) (*MailBillingPeriodUsage, error) {
+	var out MailBillingPeriodUsage
+	err := m.client.mailRequest(ctx, http.MethodGet, "/mail/billing?period="+url.QueryEscape(period), nil, &out)
 	return &out, err
 }
 func (m *MailCampaignsClient) Estimate(ctx context.Context, id string) (*MailCampaignEstimate, error) {
