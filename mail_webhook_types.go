@@ -65,6 +65,7 @@ type MailWebhook struct {
 	Description   *string    `json:"description,omitempty"`
 	Status        string     `json:"status"`
 	EventTypes    []string   `json:"eventTypes"`
+	MailboxID     *string    `json:"mailboxId,omitempty"`
 	FailureCount  int        `json:"failureCount,omitempty"`
 	LastSuccessAt *time.Time `json:"lastSuccessAt,omitempty"`
 	LastFailureAt *time.Time `json:"lastFailureAt,omitempty"`
@@ -95,7 +96,13 @@ type MailWebhookDiagnosis struct {
 type MailWebhookCreateRequest struct {
 	URL         string   `json:"url"`
 	Description string   `json:"description,omitempty"`
+	MailboxID   string   `json:"mailboxId,omitempty"`
 	EventTypes  []string `json:"eventTypes"`
+}
+
+type MailWebhookTestResult struct {
+	DeliveryID string `json:"deliveryId"`
+	EventID    string `json:"eventId"`
 }
 
 type MailWebhookCreateResponse struct {

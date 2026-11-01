@@ -9,8 +9,35 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
+	"time"
 )
+
+var errorCodePattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+
+func topLevelErrorFields(raw []byte) (string, map[string]any) {
+	var body map[string]any
+	if json.Unmarshal(raw, &body) != nil {
+		return "", nil
+	}
+	code, _ := body["code"].(string)
+	if text, ok := body["error"].(string); ok && code == "" && errorCodePattern.MatchString(text) {
+		code = text
+	}
+	details := map[string]any{}
+	for key, value := range body {
+		switch key {
+		case "success", "status", "status_code", "message", "error", "code":
+		default:
+			details[key] = value
+		}
+	}
+	if len(details) == 0 {
+		return code, nil
+	}
+	return code, details
+}
 
 const DefaultBaseURL = "https://api.stackshift.cloud/api/v1"
 const DefaultMailBaseURL = "https://api.stackshift.cloud/api/v1"
@@ -28,8 +55,10 @@ type Client struct {
 	cdnBaseURL   string
 	httpClient   HTTPDoer
 
+	Agents           *AgentsClient
 	AICredits        *AICreditsClient
 	Assets           *AssetsClient
+	Databases        *DatabasesClient
 	Mail             *MailClient
 	Partner          *PartnerClient
 	WorkloadSecurity *WorkloadSecurityClient
@@ -37,8 +66,18 @@ type Client struct {
 
 type apiEnvelope struct {
 	Success bool            `json:"success"`
-	Message string          `json:"message"`
+	Message envelopeMessage `json:"message"`
 	Data    json.RawMessage `json:"data"`
+}
+
+type envelopeMessage string
+
+func (m *envelopeMessage) UnmarshalJSON(raw []byte) error {
+	var text string
+	if json.Unmarshal(raw, &text) == nil {
+		*m = envelopeMessage(text)
+	}
+	return nil
 }
 
 type APIError struct {
@@ -87,7 +126,11 @@ func New(options Options) (*Client, error) {
 	client.Assets.Connections = &AssetConnectionsClient{client: client}
 	client.Assets.Storage = &AssetStorageClient{client: client}
 	client.Assets.Migrations = &AssetMigrationsClient{client: client}
+	client.Agents = &AgentsClient{}
+	client.Agents.Connections = &AgentConnectionsClient{client: client, Operations: &AgentConnectionOperationsClient{client: client}}
 	client.AICredits = &AICreditsClient{client: client}
+	client.Databases = &DatabasesClient{client: client}
+	client.Databases.Branches = &DatabaseBranchesClient{client: client}
 	client.Partner = &PartnerClient{client: client}
 	client.WorkloadSecurity = &WorkloadSecurityClient{client: client}
 	client.Mail = &MailClient{
@@ -121,6 +164,14 @@ func New(options Options) (*Client, error) {
 		Scheduled:      &MailScheduledClient{client: client},
 		Batch:          &MailBatchClient{client: client},
 		Analytics:      &MailAnalyticsClient{client: client},
+	}
+	client.Mail.AgentInboxes = &AgentInboxesClient{client: client, now: time.Now, Messages: &AgentInboxMessagesClient{client: client}}
+	client.Mail.TeamInboxes = &TeamInboxesClient{
+		client:         client,
+		Conversations:  &TeamInboxConversationsClient{client: client},
+		PendingReplies: &TeamInboxPendingRepliesClient{client: client},
+		Activity:       &TeamInboxActivityClient{client: client},
+		Settings:       &TeamInboxSettingsClient{client: client},
 	}
 	client.Mail.Inbound = &MailInboundClient{
 		client:   client,
@@ -217,10 +268,13 @@ func (c *Client) do(req *http.Request, out any) error {
 		if publicErr.Error.Message != "" || publicErr.Error.Code != "" {
 			return &APIError{
 				StatusCode: resp.StatusCode, Code: publicErr.Error.Code,
-				Message: publicErr.Error.Message, Details: publicErr.Error.Details,
+				Message: firstNonEmpty(publicErr.Error.Message, string(envelope.Message)), Details: publicErr.Error.Details,
 			}
 		}
-		message := envelope.Message
+		if code, details := topLevelErrorFields(raw); code != "" || details != nil {
+			return &APIError{StatusCode: resp.StatusCode, Code: code, Message: firstNonEmpty(string(envelope.Message), http.StatusText(resp.StatusCode)), Details: details}
+		}
+		message := string(envelope.Message)
 		if message == "" {
 			message = http.StatusText(resp.StatusCode)
 		}

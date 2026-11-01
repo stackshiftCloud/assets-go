@@ -40,6 +40,35 @@ status, err := client.Partner.GetDomain(ctx, domain.ID)
 
 `Partner` also exposes `Overview`, `UpdateSettings`, `ListDomains` (with `Query` and `Attention` to find the merchants that need you), `RetryDomain`, `GetDiagnosis`, `RestoreDNS`, `TransferOut`, `ResumeBrand`, `GetComplaints`, `ListComplaintSources`, `SuppressNeverOpened`, `UndoSuppression`, `Usage`, `ListRequests` and `CreateRequest`. `TransferOut` needs the `partner:transfer` scope (or `*`); `partner:manage` alone is refused. Purchases are capped at 30 per minute and, per partner, at 25 domains in a rolling 24 hours (429 `daily_purchase_limit`; staff can raise it). Validation errors are 400, state conflicts are 409.
 
+## Connected agents
+
+An agent that holds a connection credential (issued by the owner, not an account API key) can use the same API the MCP tools and the CLI use:
+
+```go
+client, _ := stackshift.New(stackshift.Options{APIKey: os.Getenv("STACKSHIFT_CONNECTION_CREDENTIAL")})
+operation, err := client.Agents.Connections.Operations.Propose(ctx, stackshift.AgentConnectionOperationInput{
+	Action: "deployment.restart", ResourceID: projectID, Reason: "Restart after the config fix", IdempotencyKey: "restart-shop-1",
+})
+wait, err := client.Agents.Connections.Operations.Wait(ctx, operation.ID, 0)
+for err == nil && !wait.Settled {
+	wait, err = client.Agents.Connections.Operations.Wait(ctx, operation.ID, 0)
+}
+```
+
+`Agents.Connections` has `Identity`, `Resources`, `Capabilities`, `Plan`, `TaskFacts`, `History` and `LowerLevel`; `Agents.Connections.Operations` has `List`, `Propose`, `Get`, `Wait` and `Approval`. `Propose` needs an `IdempotencyKey`: keep it and send the same one to retry. `Wait` returns `Settled: false` when the owner has not decided yet; call it again instead of proposing again. `Approval` says whether the owner has decided, with `ReviewURL` for the owner. `LowerLevel` only makes the connection stricter; raising a level returns `*APIError` with `Code` `session_required`.
+
+## Databases: Branches and Sleep when idle
+
+Branches give you a copy of a database for a test run, a preview or a pull request. `WithBranch` makes one, waits until it is ready, runs your function and always deletes it afterwards:
+
+```go
+err := client.Databases.Branches.WithBranch(ctx, databaseID, func(ctx context.Context, branch stackshift.DatabaseWithBranch) error {
+	return runMigrationsAndTests(ctx, branch.URL)
+})
+```
+
+If your function returns an error, that error comes first in the result (a failed cleanup is joined to it); a slow create is waited out before the branch is deleted (`CleanupTimeout`, default 10 minutes). `URL` is the shared (pooled) connection string; set `Direct` in `DatabaseWithBranchOptions` for the direct one. `Databases.Branches` also has `List`, `Create`, `Get`, `Update`, `Delete`, `Reset`, `Retry` (a failed Branch), `Promote`, `Operation`, `WaitForOperation`, `URL`, `Options` (what a new Branch can start from), `Changes` and `ResumeScheduledJobs`. `List` also returns your plan `Allowance`. `Create`, `Reset`, `Retry`, `Promote` and `Delete` return an operation; `WaitForOperation` polls it until it succeeds or fails. `Reset`, `Retry`, `Promote` and `Delete` send an `Idempotency-Key` (a new one for each call if you leave it empty). Deleting with `Cascade` also needs `ConfirmName` (the branch's name), or an error is returned before the call is sent. `Promote` accepts the parent's name or, when the parent is a branch, its short name. `Databases.Sleep`, `Databases.Wake`, `Databases.Billing`, `Databases.BranchUsage`, `Databases.PayBranchUsage`, `Databases.ScheduledJobs`, `Databases.WakeEvents`, `Databases.MoveToInstantBranches` and `Databases.InstantBranchesMove` cover Sleep when idle and the move to instant Branches. Refusals return `*APIError` with `Code` set to values such as `plan_limit`, `no_capacity`, `outside_window`, `too_large` and `payment_required`. On a Dedicated database, `Create` and `Retry` first return `price_confirmation_required` with the price in `Details["quote"]`; send the same call again with `ConfirmChargeMinor` set to its `charge_minor`. `Create` also takes `InstanceClass` to pick the size of a Dedicated Branch, and a Dedicated Branch carries its `Cost`. A `plan_limit` error carries `limit`, `current` and `upgrade_url` in `Details`.
+
 ## Send email
 
 ```go
@@ -240,6 +269,91 @@ _, err = client.Mail.Mailboxes.Suspend(ctx, mailbox.ID)
 ```
 
 `client.Mail.Groups` manages team addresses, and `client.Mail.MailboxImports` copies mail from Google, Microsoft or any IMAP server.
+
+## Give your agent an email address in one call
+
+Agent inboxes are real addresses on StackShift's shared domain. Create one, let your agent sign up somewhere, wait for the verification code and delete the inbox when the job is done.
+
+```go
+inbox, err := client.Mail.AgentInboxes.Create(ctx, stackshift.AgentInboxCreateRequest{
+	Prefix:         "signup",
+	Labels:         map[string]string{"job": "onboarding-42"},
+	JobID:          "onboarding-42",
+	ExpiresIn:      3600,
+	IdempotencyKey: "onboarding-42-inbox",
+})
+
+signUpSomewhere(inbox.Address)
+
+message, err := client.Mail.AgentInboxes.WaitForMessage(ctx, inbox.ID, stackshift.AgentInboxWaitOptions{
+	From:    "paystack.com",
+	Timeout: 2 * time.Minute,
+	Since:   inbox.CreatedAt,
+})
+if err == nil && message != nil {
+	log.Println(message.Codes[0], message.Links)
+}
+
+_, err = client.Mail.AgentInboxes.FinishJob(ctx, "onboarding-42")
+```
+
+`WaitForMessage` calls the server wait endpoint in turns of up to 50 seconds until a message arrives or `Timeout` (default 30 seconds) is used up, and returns `nil, nil` on timeout. Pass `Since` (usually `inbox.CreatedAt`) so a message that arrived before you started waiting is found. `DeleteMany` takes `IDs`, `JobID` or `Labels` and returns how many inboxes were deleted; `FinishJob` is the same as `DeleteMany` with a `JobID`. `CreateBatch` makes up to 100 inboxes at once.
+
+Read mail with `AgentInboxes.Messages.List`, `Latest` and `Get`. Find inboxes with `AgentInboxes.List`, change them with `Update`, remove one with `Delete`, and check what your account may do with `Limits` and `Pricing`.
+
+Sending never hides an approval. `Send` returns `Status` as `sent`, `waiting_approval` or `draft`, plus `PendingReplyID` and `Reasons` when a person has to approve first:
+
+```go
+result, err := client.Mail.AgentInboxes.Send(ctx, inbox.ID, stackshift.AgentInboxSendRequest{
+	To:               []string{"ada@example.com"},
+	Subject:          "Re: your question",
+	Text:             "Thanks, here is the answer.",
+	ReplyToMessageID: message.ID,
+})
+if err == nil && result.Status == "waiting_approval" {
+	log.Println("Waiting for a person to approve", result.PendingReplyID, result.Reasons)
+}
+```
+
+### Team inboxes
+
+Team inboxes are shared mailboxes your people and agents work together. Use the mailbox id:
+
+```go
+list, err := client.Mail.TeamInboxes.Conversations.List(ctx, mailboxID, stackshift.TeamInboxConversationListOptions{Status: "open", Assignee: "nobody"})
+thread := list.Conversations[0]
+_, err = client.Mail.TeamInboxes.Conversations.Assign(ctx, mailboxID, thread.ThreadID, stackshift.TeamInboxAssignRequest{WorkerID: workerID, ExpectedRevision: thread.Revision})
+_, err = client.Mail.TeamInboxes.Conversations.AddNote(ctx, mailboxID, thread.ThreadID, stackshift.TeamInboxNoteRequest{Body: "Checked the logs, restarting the app."})
+
+waiting, err := client.Mail.TeamInboxes.PendingReplies.List(ctx, mailboxID)
+_, err = client.Mail.TeamInboxes.PendingReplies.Send(ctx, mailboxID, waiting[0].ID, stackshift.TeamInboxPendingSendRequest{})
+
+activity, err := client.Mail.TeamInboxes.Activity.Wait(ctx, mailboxID, stackshift.TeamInboxActivityWaitOptions{After: cursor, Timeout: 30 * time.Second})
+cursor = activity.Next
+```
+
+`Conversations.Reply` sends a draft you prepared as the inbox, `Conversations.SetStatus` takes a `Status` and `ExpectedRevision`, `Settings.Get` reads the inbox settings, and `People` returns the people (`UserID`, `Name`, `Email`) and workers you can assign conversations to. `Activity.Wait` checks for new activity after your cursor every 2 seconds (`Interval`) until something happens or `Timeout` passes. Refusals return `*stackshift.APIError` with `Code` set to values such as `reply_locked`, `revision_conflict`, `reply_already_decided`, `send_in_progress` (409, a send for the same conversation is already running; wait for it to finish) and `mail_allowance_reached`.
+
+To get inbox events at your own endpoint, create a webhook with `MailboxID` and the `mailbox.conversation.*` events you want, and check it with `client.Mail.Webhooks.Test`, which returns the `DeliveryID` and `EventID` of the queued test event (202).
+
+### Inbox webhooks
+
+Inbox events (`mailbox.conversation.*`, `mailbox.agent_inbox.*`, `mailbox.sending.*`) use the same `StackShift-Signature` header as Mail webhooks:
+
+```go
+body, _ := io.ReadAll(r.Body)
+if !stackshift.VerifyInboxWebhook(body, r.Header.Get("StackShift-Signature"), os.Getenv("STACKSHIFT_WEBHOOK_SECRET")) {
+	http.Error(w, "Invalid signature", http.StatusBadRequest)
+	return
+}
+event, err := stackshift.ParseInboxWebhook(body)
+if err == nil && event.Type == stackshift.InboxEventConversationReceived {
+	data, _ := event.ConversationData()
+	log.Println(data.Conversation.Subject)
+}
+```
+
+Use `event.MailboxData()` for the `mailbox.agent_inbox.*` and `mailbox.sending.*` events. Signatures older than five minutes are refused. Handlers should be idempotent.
 
 ## Upload an asset
 

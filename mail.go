@@ -35,6 +35,8 @@ type MailClient struct {
 	Groups         *MailboxGroupsClient
 	Routes         *MailboxRoutesClient
 	MailboxImports *MailboxImportsClient
+	AgentInboxes   *AgentInboxesClient
+	TeamInboxes    *TeamInboxesClient
 	Limits         *MailLimitsClient
 	Reputation     *MailReputationClient
 	Scheduled      *MailScheduledClient

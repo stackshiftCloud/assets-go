@@ -94,6 +94,13 @@ func (m *MailWebhooksClient) Update(ctx context.Context, webhookID string, input
 	return &webhook, err
 }
 
+func (m *MailWebhooksClient) Test(ctx context.Context, webhookID string) (*MailWebhookTestResult, error) {
+	var result MailWebhookTestResult
+	path := "/mail/webhooks/" + url.PathEscape(webhookID) + "/test"
+	err := m.client.mailRequest(ctx, http.MethodPost, path, nil, &result)
+	return &result, err
+}
+
 func (m *MailWebhooksClient) RotateSecret(ctx context.Context, webhookID string) (string, error) {
 	var result struct {
 		Secret string `json:"secret"`
