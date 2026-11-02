@@ -118,7 +118,7 @@ func TestPartnerMerchantInsights(t *testing.T) {
 	status := http.StatusOK
 	payload := ""
 	client, err := New(Options{APIKey: "sspat_fixture", HTTPClient: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-		call := partnerCall{method: req.Method, uri: req.URL.RequestURI()}
+		call := partnerCall{method: req.Method, uri: req.URL.RequestURI(), key: req.Header.Get("Idempotency-Key")}
 		if req.Body != nil {
 			raw, _ := io.ReadAll(req.Body)
 			if len(raw) > 0 {
@@ -142,9 +142,9 @@ func TestPartnerMerchantInsights(t *testing.T) {
 		t.Fatalf("list insights: %v %#v", err, list)
 	}
 
-	payload = `{"success":true,"data":{"id":"dom_1","replies":{"mode":"mailbox","mailboxOwnerEmail":"ada@merchantshop.com","mailboxOwnerName":"Ada Obi"},"records":[{"domain":"news.merchantshop.com","type":"MX","name":"merchantshop.com","value":"mx.stackshift.cloud","priority":10,"verified":true,"purpose":"reply_mx"}],"refunded":true,"refund":{"amountMinor":130000,"currency":"NGN","at":"2026-10-23T12:00:00Z"},"webhookDeliveredAt":"2026-10-23T11:05:00Z","warmup":{"marketingSentToday":0,"marketingOpensInDays":4}}}`
+	payload = `{"success":true,"data":{"id":"dom_1","replies":{"mode":"mailbox","mailboxRecoveryEmail":"ada@gmail.com","mailboxOwnerName":"Ada Obi"},"records":[{"domain":"news.merchantshop.com","type":"MX","name":"merchantshop.com","value":"mx.stackshift.cloud","priority":10,"verified":true,"purpose":"reply_mx"}],"refunded":true,"refund":{"amountMinor":130000,"currency":"NGN","at":"2026-10-23T12:00:00Z"},"webhookDeliveredAt":"2026-10-23T11:05:00Z","warmup":{"marketingSentToday":0,"marketingOpensInDays":4}}}`
 	view, err := client.Partner.GetDomain(ctx, "dom_1")
-	if err != nil || view.Replies.MailboxOwnerName == nil || *view.Replies.MailboxOwnerName != "Ada Obi" || len(view.Records) != 1 || view.Records[0].Purpose != "reply_mx" || *view.Records[0].Priority != 10 ||
+	if err != nil || view.Replies.MailboxOwnerName == nil || *view.Replies.MailboxOwnerName != "Ada Obi" || view.Replies.MailboxRecoveryEmail != "ada@gmail.com" || len(view.Records) != 1 || view.Records[0].Purpose != "reply_mx" || *view.Records[0].Priority != 10 ||
 		view.Refund == nil || view.Refund.AmountMinor != 130000 || view.WebhookDeliveredAt == nil || view.Warmup.MarketingOpensInDays != 4 {
 		t.Fatalf("detail insights: %v %#v", err, view)
 	}
@@ -158,6 +158,133 @@ func TestPartnerMerchantInsights(t *testing.T) {
 	payload = `{"success":true,"data":{"id":"dom_1"}}`
 	if _, err := client.Partner.RestoreDNS(ctx, "dom_1"); err != nil || last().method != http.MethodPost || last().uri != "/api/v1/partner/domains/dom_1/restore-dns" {
 		t.Fatalf("restore dns: %v %#v", err, last())
+	}
+
+	payload = `{"success":true,"data":{"id":"dom_1","source":"connected","connectMethod":"cloudflare","mail":{"migration":"suggested"},"website":{"projectId":"prj_1","projectName":"Storefront","state":"waiting_dns","hosts":[{"hostname":"kicksbyfemi.ng","dns":"waiting","found":["23.227.38.65"],"https":"none","httpsRenewsAt":null}],"records":[{"type":"A","name":"@","value":"203.0.113.7","state":"wrong"}],"queue":{"ahead":12,"estimatedLiveAt":"2026-11-02T09:00:00Z"},"liveAt":null,"failure":null},"transfer":{"state":"moving_dns","startedAt":"2026-11-01T09:00:00Z","completedAt":null,"amountMinor":1500000,"currency":"NGN","refunded":false,"dnsCopied":[{"type":"MX","name":"@","value":"mx.example.com"}],"failure":null}}}`
+	connected, err := client.Partner.ConnectDomain(ctx, PartnerDomainConnectInput{
+		Domain: "kicksbyfemi.ng", MerchantRef: "m_10377",
+		Brand:   PartnerBrandInput{Name: "Kicks by Femi", PostalAddress: "1 Marina, Lagos"},
+		Replies: PartnerRepliesInput{Mode: "mailbox", MailboxRecoveryEmail: "femi@gmail.com"},
+		Website: &PartnerWebsiteInput{ProjectID: "prj_1"},
+		DNS:     PartnerDNSInput{Method: "cloudflare", CloudflareToken: "cf_token"},
+	}, "connect-1")
+	if err != nil || connected.Source != "connected" || connected.Website == nil || connected.Website.Queue == nil || connected.Website.Queue.Ahead != 12 || connected.Website.Hosts[0].Found[0] != "23.227.38.65" ||
+		connected.Transfer == nil || connected.Transfer.State != "moving_dns" || connected.Transfer.DNSCopied[0].Type != "MX" || connected.Mail.Migration == nil || *connected.Mail.Migration != "suggested" ||
+		last().method != http.MethodPost || last().uri != "/api/v1/partner/domains/connect" || last().key != "connect-1" ||
+		last().body["website"].(map[string]any)["projectId"] != "prj_1" || last().body["dns"].(map[string]any)["method"] != "cloudflare" ||
+		last().body["replies"].(map[string]any)["mailboxRecoveryEmail"] != "femi@gmail.com" {
+		t.Fatalf("connect: %v %#v", err, last())
+	}
+	if _, err := client.Partner.TransferInDomain(ctx, PartnerDomainTransferInInput{
+		PartnerDomainConnectInput: PartnerDomainConnectInput{Domain: "kicksbyfemi.ng", MerchantRef: "m_10377", DNS: PartnerDNSInput{Method: "manual"}},
+		AuthCode:                  "Zx9-auth", ExtraHosts: []string{"shop"},
+	}, "transfer-1"); err != nil || last().uri != "/api/v1/partner/domains/transfer-in" || last().key != "transfer-1" || last().body["authCode"] != "Zx9-auth" || last().body["domain"] != "kicksbyfemi.ng" || last().body["extraHosts"].([]any)[0] != "shop" {
+		t.Fatalf("transfer in: %v %#v", err, last())
+	}
+	if _, err := client.Partner.TransferInConnectedDomain(ctx, "dom/1", PartnerConnectedTransferInInput{AuthCode: "Zx9-auth", Currency: "USD"}, "transfer-2"); err != nil ||
+		last().method != http.MethodPost || last().uri != "/api/v1/partner/domains/dom%2F1/transfer-in" || last().key != "transfer-2" || last().body["currency"] != "USD" {
+		t.Fatalf("transfer in connected: %v %#v", err, last())
+	}
+	if _, err := client.Partner.SetWebsite(ctx, "dom_1", PartnerWebsiteInput{ProjectID: "prj_2"}); err != nil || last().method != http.MethodPut || last().uri != "/api/v1/partner/domains/dom_1/website" || last().body["projectId"] != "prj_2" {
+		t.Fatalf("set website: %v %#v", err, last())
+	}
+	if _, err := client.Partner.RemoveWebsite(ctx, "dom_1"); err != nil || last().method != http.MethodDelete || last().uri != "/api/v1/partner/domains/dom_1/website" {
+		t.Fatalf("remove website: %v %#v", err, last())
+	}
+	if _, err := client.Partner.CheckWebsite(ctx, "dom_1"); err != nil || last().method != http.MethodPost || last().uri != "/api/v1/partner/domains/dom_1/website/check" {
+		t.Fatalf("check website: %v %#v", err, last())
+	}
+	if _, err := client.Partner.ListDomains(ctx, PartnerDomainListOptions{Website: "pending"}); err != nil || last().uri != "/api/v1/partner/domains?website=pending" {
+		t.Fatalf("website filter: %v %#v", err, last())
+	}
+
+	payload = `{"success":true,"data":[{"id":"prj_1","name":"Storefront","slug":"storefront","hostname":"storefront.stackshift.cloud","merchantWebsites":1240}]}`
+	projects, err := client.Partner.ListWebsiteProjects(ctx)
+	if err != nil || len(projects) != 1 || projects[0].MerchantWebsites != 1240 || last().uri != "/api/v1/partner/website-projects" {
+		t.Fatalf("website projects: %v %#v", err, last())
+	}
+
+	payload = `{"success":true,"data":[{"id":"mbx_1","address":"hello@kicksbyfemi.ng","kind":"mailbox","displayName":"Femi","deliversTo":null,"status":"awaiting_password","recoveryEmail":"femi@gmail.com","passwordSetAt":null,"passwordLinkSentAt":"2026-11-01T09:00:00Z","lastSignInAt":null,"lastSignInApp":null,"storageUsedBytes":0,"quotaBytes":10737418240,"plan":"basic","price":{"amountMinor":250000,"currency":"NGN"},"renewsAt":"2026-12-01T00:00:00Z"}]}`
+	mailboxes, err := client.Partner.ListMailboxes(ctx, "dom_1")
+	if err != nil || len(mailboxes) != 1 || mailboxes[0].Status != "awaiting_password" || mailboxes[0].PasswordLinkSentAt == nil || mailboxes[0].Price == nil || mailboxes[0].Price.AmountMinor != 250000 || last().uri != "/api/v1/partner/domains/dom_1/mailboxes" {
+		t.Fatalf("list mailboxes: %v %#v", err, last())
+	}
+	payload = `{"success":true,"data":{"mailbox":{"id":"mbx_2","address":"orders@kicksbyfemi.ng","kind":"mailbox","status":"awaiting_password"},"passwordLink":{"url":"https://mail.kicksbyfemi.ng/webmail/set-password#tok","expiresAt":"2026-11-08T00:00:00Z"}}}`
+	sendLink := true
+	created, err := client.Partner.CreateMailbox(ctx, "dom_1", PartnerMailboxInput{LocalPart: "orders", Plan: "pro", SendPasswordLink: &sendLink}, "mailbox-1")
+	if err != nil || created.Mailbox.ID != "mbx_2" || created.PasswordLink.URL == "" || last().method != http.MethodPost || last().uri != "/api/v1/partner/domains/dom_1/mailboxes" || last().key != "mailbox-1" || last().body["localPart"] != "orders" || last().body["sendPasswordLink"] != true {
+		t.Fatalf("create mailbox: %v %#v", err, last())
+	}
+	payload = `{"success":true,"data":{"id":"mbx_2"}}`
+	name := "Femi A."
+	if _, err := client.Partner.UpdateMailbox(ctx, "dom_1", "mbx/2", PartnerMailboxUpdate{DisplayName: &name}); err != nil || last().method != http.MethodPatch || last().uri != "/api/v1/partner/domains/dom_1/mailboxes/mbx%2F2" || last().body["displayName"] != "Femi A." {
+		t.Fatalf("update mailbox: %v %#v", err, last())
+	}
+	if _, err := client.Partner.PauseMailbox(ctx, "dom_1", "mbx_2"); err != nil || last().method != http.MethodPost || last().uri != "/api/v1/partner/domains/dom_1/mailboxes/mbx_2/pause" {
+		t.Fatalf("pause mailbox: %v %#v", err, last())
+	}
+	if _, err := client.Partner.ResumeMailbox(ctx, "dom_1", "mbx_2"); err != nil || last().uri != "/api/v1/partner/domains/dom_1/mailboxes/mbx_2/resume" {
+		t.Fatalf("resume mailbox: %v %#v", err, last())
+	}
+	payload = `{"success":true,"data":{"id":"mbx_2","address":"orders@kicksbyfemi.ng","status":"removed"}}`
+	if removed, err := client.Partner.RemoveMailbox(ctx, "dom_1", "mbx_2"); err != nil || removed.Status != "removed" || last().method != http.MethodDelete || last().uri != "/api/v1/partner/domains/dom_1/mailboxes/mbx_2" {
+		t.Fatalf("remove mailbox: %v %#v", err, last())
+	}
+	payload = `{"success":true,"data":{"url":"https://mail.kicksbyfemi.ng/webmail/set-password#tok","expiresAt":"2026-11-08T00:00:00Z"}}`
+	link, err := client.Partner.CreateMailboxPasswordLink(ctx, "dom_1", "mbx_2", PartnerPasswordLinkInput{Reset: true})
+	if err != nil || link.URL == "" || last().uri != "/api/v1/partner/domains/dom_1/mailboxes/mbx_2/password-link" || last().body["reset"] != true || last().body["send"] != false {
+		t.Fatalf("password link: %v %#v", err, last())
+	}
+	payload = `{"success":true,"data":{"id":"als_1","kind":"alias","deliversTo":"hello@kicksbyfemi.ng"}}`
+	alias, err := client.Partner.CreateAlias(ctx, "dom_1", PartnerAliasInput{LocalPart: "orders", DeliverTo: "hello@kicksbyfemi.ng"})
+	if err != nil || alias.Kind != "alias" || last().uri != "/api/v1/partner/domains/dom_1/aliases" || last().key != "" || last().body["deliverTo"] != "hello@kicksbyfemi.ng" {
+		t.Fatalf("create alias: %v %#v", err, last())
+	}
+	if _, err := client.Partner.UpdateAlias(ctx, "dom_1", "als_1", PartnerAliasUpdate{DeliverTo: "sales@kicksbyfemi.ng"}); err != nil || last().method != http.MethodPatch || last().uri != "/api/v1/partner/domains/dom_1/aliases/als_1" {
+		t.Fatalf("update alias: %v %#v", err, last())
+	}
+	payload = ``
+	status = http.StatusNoContent
+	if err := client.Partner.RemoveAlias(ctx, "dom_1", "als_1"); err != nil || last().method != http.MethodDelete || last().uri != "/api/v1/partner/domains/dom_1/aliases/als_1" {
+		t.Fatalf("remove alias: %v %#v", err, last())
+	}
+	status = http.StatusOK
+
+	payload = `{"success":true,"data":{"id":"mig_1","state":"copying","startedBy":"partner","source":"google","host":"","switch":{"requestedFor":"tonight","scheduledAt":null,"switchedAt":null,"answeredAt":null},"catchUpAt":null,"completedAt":null,"createdAt":"2026-11-01T09:00:00Z","updatedAt":"2026-11-01T09:05:00Z","emails":{"copied":120,"total":4000,"caughtUp":0},"mailboxes":[{"mailboxId":"mbx_1","address":"hello@kicksbyfemi.ng","username":"femi@kicksbyfemi.ng","state":"copying","copiedEmails":120,"totalEmails":4000,"copiedBytes":1000,"totalBytes":50000,"caughtUpEmails":null,"minutesLeft":12,"message":null}],"records":[{"type":"MX","name":"@","value":"mx.stackshift.cloud","priority":10,"found":false}],"failure":null}}`
+	migration, err := client.Partner.StartMailMigration(ctx, "dom_1", PartnerMailMigrationInput{
+		Source: "google", Switch: "tonight",
+		Accounts: []PartnerMailMigrationAccountInput{{MailboxID: "mbx_1", Username: "femi@kicksbyfemi.ng", Password: "app-password"}},
+	}, "migration-1")
+	if err != nil || migration.State != "copying" || migration.Mailboxes[0].CopiedEmails != 120 || migration.Emails.Total != 4000 || *migration.Switch.RequestedFor != "tonight" || migration.Records[0].Found || last().method != http.MethodPost || last().uri != "/api/v1/partner/domains/dom_1/mail-migration" || last().key != "migration-1" ||
+		last().body["accounts"].([]any)[0].(map[string]any)["mailboxId"] != "mbx_1" || last().body["switch"] != "tonight" {
+		t.Fatalf("start migration: %v %#v", err, last())
+	}
+	if _, err := client.Partner.GetMailMigration(ctx, "dom_1"); err != nil || last().method != http.MethodGet || last().uri != "/api/v1/partner/domains/dom_1/mail-migration" {
+		t.Fatalf("get migration: %v %#v", err, last())
+	}
+	payload = `{"success":true,"data":{"switch":{"requestedFor":"now","scheduledAt":"2026-11-01T09:10:00Z","switchedAt":"2026-11-01T09:10:00Z","answeredAt":null},"migration":null}}`
+	if switched, err := client.Partner.SwitchMailMigration(ctx, "dom_1", PartnerMailMigrationSwitchInput{When: "now"}); err != nil || switched.Migration != nil || switched.Switch.SwitchedAt == nil || last().uri != "/api/v1/partner/domains/dom_1/mail-migration/switch" || last().body["when"] != "now" {
+		t.Fatalf("switch migration: %v %#v", err, last())
+	}
+	payload = `{"success":true,"data":{"id":"mig_1","state":"copying"}}`
+	if _, err := client.Partner.RetryMailMigration(ctx, "dom_1"); err != nil || last().method != http.MethodPost || last().uri != "/api/v1/partner/domains/dom_1/mail-migration/retry" {
+		t.Fatalf("retry migration: %v %#v", err, last())
+	}
+	if _, err := client.Partner.RetryMailMigrationAccount(ctx, "dom_1", "mbx/1", &PartnerMailMigrationCredentials{Username: "femi@kicksbyfemi.ng", Password: "new-app-password"}); err != nil ||
+		last().uri != "/api/v1/partner/domains/dom_1/mail-migration/accounts/mbx%2F1/retry" || last().body["password"] != "new-app-password" {
+		t.Fatalf("retry migration account: %v %#v", err, last())
+	}
+	if _, err := client.Partner.RetryMailMigrationAccount(ctx, "dom_1", "mbx_1", nil); err != nil || last().body != nil {
+		t.Fatalf("retry migration account without credentials: %v %#v", err, last())
+	}
+	if _, err := client.Partner.SwitchTransferNameservers(ctx, "dom/1"); err != nil || last().method != http.MethodPost || last().uri != "/api/v1/partner/domains/dom%2F1/transfer-in/switch-nameservers" {
+		t.Fatalf("switch nameservers: %v %#v", err, last())
+	}
+	if _, err := client.Partner.CancelMailMigration(ctx, "dom_1"); err != nil || last().uri != "/api/v1/partner/domains/dom_1/mail-migration/cancel" {
+		t.Fatalf("cancel migration: %v %#v", err, last())
+	}
+	if _, err := client.Partner.SkipMailMigrationAccount(ctx, "dom_1", "mbx/1"); err != nil || last().method != http.MethodPost || last().uri != "/api/v1/partner/domains/dom_1/mail-migration/accounts/mbx%2F1/skip" {
+		t.Fatalf("skip migration account: %v %#v", err, last())
 	}
 
 	payload = `{"success":true,"data":{"complained":4,"suppressed":12}}`

@@ -38,7 +38,7 @@ domain, err := client.Partner.PurchaseDomain(ctx, stackshift.PartnerDomainPurcha
 status, err := client.Partner.GetDomain(ctx, domain.ID)
 ```
 
-`Partner` also exposes `Overview`, `UpdateSettings`, `ListDomains` (with `Query` and `Attention` to find the merchants that need you), `RetryDomain`, `GetDiagnosis`, `RestoreDNS`, `TransferOut`, `ResumeBrand`, `GetComplaints`, `ListComplaintSources`, `SuppressNeverOpened`, `UndoSuppression`, `Usage`, `ListRequests` and `CreateRequest`. `TransferOut` needs the `partner:transfer` scope (or `*`); `partner:manage` alone is refused. Purchases are capped at 30 per minute and, per partner, at 25 domains in a rolling 24 hours (429 `daily_purchase_limit`; staff can raise it). Validation errors are 400, state conflicts are 409.
+`Partner` also exposes `Overview`, `UpdateSettings`, `ListDomains` (with `Query`, `Attention` and `Website` to find the merchants that need you), `ConnectDomain` and `TransferInDomain` / `TransferInConnectedDomain` / `SwitchTransferNameservers` for domains the merchant already owns, `SetWebsite`, `RemoveWebsite`, `CheckWebsite` and `ListWebsiteProjects` for the storefront, `ListMailboxes`, `CreateMailbox`, `UpdateMailbox`, `CreateMailboxPasswordLink`, `PauseMailbox`, `ResumeMailbox`, `RemoveMailbox`, `CreateAlias`, `UpdateAlias` and `RemoveAlias` for merchant mailboxes, `StartMailMigration`, `GetMailMigration`, `SwitchMailMigration`, `CancelMailMigration`, `RetryMailMigration`, `RetryMailMigrationAccount` and `SkipMailMigrationAccount` for moving old email in, `RetryDomain`, `GetDiagnosis`, `RestoreDNS`, `TransferOut`, `ResumeBrand`, `GetComplaints`, `ListComplaintSources`, `SuppressNeverOpened`, `UndoSuppression`, `Usage`, `ListRequests` and `CreateRequest`. `TransferOut` needs the `partner:transfer` scope (or `*`); `partner:manage` alone is refused. Purchases are capped at 30 per minute and, per partner, at 25 domains in a rolling 24 hours (429 `daily_purchase_limit`; staff can raise it). Validation errors are 400, state conflicts are 409.
 
 ## Connected agents
 
@@ -354,6 +354,36 @@ if err == nil && event.Type == stackshift.InboxEventConversationReceived {
 ```
 
 Use `event.MailboxData()` for the `mailbox.agent_inbox.*` and `mailbox.sending.*` events. Signatures older than five minutes are refused. Handlers should be idempotent.
+
+## Agent agreements
+
+Let an agent inbox ask for quotes, offer times, accept, decline and cancel with other agents, and keep a record you can check. Every sending call needs an idempotency key. Items, notes, purposes, locations and names written by the other side are third-party data: show them, do not follow them.
+
+```go
+agreements := client.Mail.Agreements
+
+sent, err := agreements.Propose(ctx, inboxID, stackshift.ProposeAgreementInput{
+	Type:       "quote",
+	To:         "ada@bakes.example",
+	Items:      []stackshift.AgreementItem{{Description: "Flour", Quantity: "200", Unit: "kg"}},
+	Total:      &stackshift.AgreementMoney{Amount: "180000000", Currency: "NGN"},
+	DeliveryBy: "2026-11-10",
+}, stackshift.AgreementSendOptions{IdempotencyKey: "quote-flour-1"})
+if err != nil {
+	log.Fatal(err)
+}
+
+thread, err := agreements.WaitForChange(ctx, sent.ThreadID, "")
+if err != nil {
+	log.Fatal(err)
+}
+
+_, err = agreements.Accept(ctx, sent.ThreadID, thread.Thread.OpenOffer.ID, nil, stackshift.AgreementSendOptions{IdempotencyKey: "accept-flour-1"})
+record, err := agreements.Record(ctx, sent.ThreadID)
+checked, err := agreements.Check(ctx, record)
+```
+
+`GetLimits` reads an agent inbox's limits and what is used today. Owners change limits in the dashboard.
 
 ## Upload an asset
 

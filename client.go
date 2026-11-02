@@ -156,6 +156,7 @@ func New(options Options) (*Client, error) {
 		Exports:        &MailExportsClient{client: client},
 		MailboxDomains: &MailboxDomainsClient{client: client},
 		Mailboxes:      &MailboxesClient{client: client},
+		Agreements:     &MailAgreementsClient{client: client},
 		Aliases:        &MailboxAliasesClient{client: client},
 		Groups:         &MailboxGroupsClient{client: client},
 		Routes:         &MailboxRoutesClient{client: client},

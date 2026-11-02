@@ -31,6 +31,7 @@ type MailClient struct {
 	Exports        *MailExportsClient
 	MailboxDomains *MailboxDomainsClient
 	Mailboxes      *MailboxesClient
+	Agreements     *MailAgreementsClient
 	Aliases        *MailboxAliasesClient
 	Groups         *MailboxGroupsClient
 	Routes         *MailboxRoutesClient
