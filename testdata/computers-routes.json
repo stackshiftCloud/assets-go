@@ -1,0 +1,538 @@
+{
+ "source": "openapi/computers.yaml plus the router",
+ "routes": [
+  {
+   "operationId": "registerComputerAgent",
+   "method": "POST",
+   "path": "/auth/agent",
+   "public": true
+  },
+  {
+   "operationId": "getComputerAgentClaim",
+   "method": "GET",
+   "path": "/auth/agent/claims/{code}"
+  },
+  {
+   "operationId": "decideComputerAgentClaim",
+   "method": "POST",
+   "path": "/auth/agent/claims/{code}/decision"
+  },
+  {
+   "operationId": "exchangeComputerAgentClaim",
+   "method": "POST",
+   "path": "/auth/agent/token",
+   "public": true
+  },
+  {
+   "operationId": "listComputers",
+   "method": "GET",
+   "path": "/computers"
+  },
+  {
+   "operationId": "createComputer",
+   "method": "POST",
+   "path": "/computers"
+  },
+  {
+   "operationId": "getComputerApproval",
+   "method": "GET",
+   "path": "/computers/approvals/{approval_id}"
+  },
+  {
+   "operationId": "decideComputerApproval",
+   "method": "POST",
+   "path": "/computers/approvals/{approval_id}/decision"
+  },
+  {
+   "operationId": "getComputerCI",
+   "method": "GET",
+   "path": "/computers/ci"
+  },
+  {
+   "operationId": "connectComputerCircleCI",
+   "method": "POST",
+   "path": "/computers/ci/circleci/connections"
+  },
+  {
+   "operationId": "disconnectComputerCircleCI",
+   "method": "DELETE",
+   "path": "/computers/ci/circleci/connections/{connection_id}"
+  },
+  {
+   "operationId": "connectComputerCI",
+   "method": "POST",
+   "path": "/computers/ci/connections"
+  },
+  {
+   "operationId": "disconnectComputerCI",
+   "method": "DELETE",
+   "path": "/computers/ci/connections/{connection_id}"
+  },
+  {
+   "operationId": "listComputerCIJobs",
+   "method": "GET",
+   "path": "/computers/ci/jobs"
+  },
+  {
+   "operationId": "importComputerImage",
+   "method": "POST",
+   "path": "/computers/images/import"
+  },
+  {
+   "operationId": "listComputerKeys",
+   "method": "GET",
+   "path": "/computers/keys"
+  },
+  {
+   "operationId": "createComputerKey",
+   "method": "POST",
+   "path": "/computers/keys"
+  },
+  {
+   "operationId": "revokeComputerKey",
+   "method": "DELETE",
+   "path": "/computers/keys/{key_id}"
+  },
+  {
+   "operationId": "getComputerPricing",
+   "method": "GET",
+   "path": "/computers/pricing"
+  },
+  {
+   "operationId": "getComputerPublicPricing",
+   "method": "GET",
+   "path": "/computers/public-pricing",
+   "public": true
+  },
+  {
+   "operationId": "listComputerRegions",
+   "method": "GET",
+   "path": "/computers/regions"
+  },
+  {
+   "operationId": "getComputerSettings",
+   "method": "GET",
+   "path": "/computers/settings"
+  },
+  {
+   "operationId": "saveComputerSettings",
+   "method": "PUT",
+   "path": "/computers/settings"
+  },
+  {
+   "operationId": "listComputerSnapshots",
+   "method": "GET",
+   "path": "/computers/snapshots"
+  },
+  {
+   "operationId": "deleteComputerSnapshot",
+   "method": "DELETE",
+   "path": "/computers/snapshots/{snapshot_id}"
+  },
+  {
+   "operationId": "createComputerSSHCertificate",
+   "method": "POST",
+   "path": "/computers/ssh/certificates"
+  },
+  {
+   "operationId": "listComputerTeams",
+   "method": "GET",
+   "path": "/computers/teams"
+  },
+  {
+   "operationId": "createComputerTeam",
+   "method": "POST",
+   "path": "/computers/teams"
+  },
+  {
+   "operationId": "deleteComputerTeam",
+   "method": "DELETE",
+   "path": "/computers/teams/{team_id}"
+  },
+  {
+   "operationId": "getComputerTeam",
+   "method": "GET",
+   "path": "/computers/teams/{team_id}"
+  },
+  {
+   "operationId": "updateComputerTeam",
+   "method": "PATCH",
+   "path": "/computers/teams/{team_id}"
+  },
+  {
+   "operationId": "getComputerTeamActivity",
+   "method": "GET",
+   "path": "/computers/teams/{team_id}/activity"
+  },
+  {
+   "operationId": "listComputerTeamFiles",
+   "method": "GET",
+   "path": "/computers/teams/{team_id}/files"
+  },
+  {
+   "operationId": "addComputerTeamMember",
+   "method": "POST",
+   "path": "/computers/teams/{team_id}/members"
+  },
+  {
+   "operationId": "removeComputerTeamMember",
+   "method": "DELETE",
+   "path": "/computers/teams/{team_id}/members/{member_id}"
+  },
+  {
+   "operationId": "listComputerTeamMessages",
+   "method": "GET",
+   "path": "/computers/teams/{team_id}/messages"
+  },
+  {
+   "operationId": "sendComputerTeamMessage",
+   "method": "POST",
+   "path": "/computers/teams/{team_id}/messages"
+  },
+  {
+   "operationId": "streamComputerTeamMessages",
+   "method": "GET",
+   "path": "/computers/teams/{team_id}/messages/stream"
+  },
+  {
+   "operationId": "getComputerTeamNetwork",
+   "method": "GET",
+   "path": "/computers/teams/{team_id}/network"
+  },
+  {
+   "operationId": "pauseComputerTeam",
+   "method": "POST",
+   "path": "/computers/teams/{team_id}/pause"
+  },
+  {
+   "operationId": "resumeComputerTeam",
+   "method": "POST",
+   "path": "/computers/teams/{team_id}/resume"
+  },
+  {
+   "operationId": "listComputerTemplates",
+   "method": "GET",
+   "path": "/computers/templates"
+  },
+  {
+   "operationId": "getComputerUsage",
+   "method": "GET",
+   "path": "/computers/usage"
+  },
+  {
+   "operationId": "deleteComputer",
+   "method": "DELETE",
+   "path": "/computers/{computer_id}"
+  },
+  {
+   "operationId": "getComputer",
+   "method": "GET",
+   "path": "/computers/{computer_id}"
+  },
+  {
+   "operationId": "updateComputer",
+   "method": "PATCH",
+   "path": "/computers/{computer_id}"
+  },
+  {
+   "operationId": "actComputer",
+   "method": "POST",
+   "path": "/computers/{computer_id}/actions"
+  },
+  {
+   "operationId": "listComputerActivityLeases",
+   "method": "GET",
+   "path": "/computers/{computer_id}/activity-leases"
+  },
+  {
+   "operationId": "releaseComputerActivityLease",
+   "method": "DELETE",
+   "path": "/computers/{computer_id}/activity-leases/{task}"
+  },
+  {
+   "operationId": "putComputerActivityLease",
+   "method": "PUT",
+   "path": "/computers/{computer_id}/activity-leases/{task}"
+  },
+  {
+   "operationId": "listComputerAgentConversations",
+   "method": "GET",
+   "path": "/computers/{computer_id}/agent/conversations"
+  },
+  {
+   "operationId": "streamComputerAgentEvents",
+   "method": "GET",
+   "path": "/computers/{computer_id}/agent/conversations/{conversation_id}/events"
+  },
+  {
+   "operationId": "interruptComputerAgent",
+   "method": "POST",
+   "path": "/computers/{computer_id}/agent/conversations/{conversation_id}/interrupt"
+  },
+  {
+   "operationId": "steerComputerAgent",
+   "method": "POST",
+   "path": "/computers/{computer_id}/agent/conversations/{conversation_id}/steer"
+  },
+  {
+   "operationId": "promptComputerAgent",
+   "method": "POST",
+   "path": "/computers/{computer_id}/agent/prompt"
+  },
+  {
+   "operationId": "listComputerApprovals",
+   "method": "GET",
+   "path": "/computers/{computer_id}/approvals"
+  },
+  {
+   "operationId": "askComputerOwner",
+   "method": "POST",
+   "path": "/computers/{computer_id}/approvals"
+  },
+  {
+   "operationId": "sendComputerCommandStdin",
+   "method": "POST",
+   "path": "/computers/{computer_id}/commands/{command_id}/stdin"
+  },
+  {
+   "operationId": "streamComputerEvents",
+   "method": "GET",
+   "path": "/computers/{computer_id}/events"
+  },
+  {
+   "operationId": "execComputer",
+   "method": "POST",
+   "path": "/computers/{computer_id}/exec"
+  },
+  {
+   "operationId": "removeComputerFile",
+   "method": "DELETE",
+   "path": "/computers/{computer_id}/files"
+  },
+  {
+   "operationId": "readComputerFile",
+   "method": "GET",
+   "path": "/computers/{computer_id}/files"
+  },
+  {
+   "operationId": "writeComputerFile",
+   "method": "PUT",
+   "path": "/computers/{computer_id}/files"
+  },
+  {
+   "operationId": "startComputerDownload",
+   "method": "POST",
+   "path": "/computers/{computer_id}/files/downloads"
+  },
+  {
+   "operationId": "listComputerFiles",
+   "method": "GET",
+   "path": "/computers/{computer_id}/files/list"
+  },
+  {
+   "operationId": "makeComputerFolder",
+   "method": "POST",
+   "path": "/computers/{computer_id}/files/mkdir"
+  },
+  {
+   "operationId": "getComputerTransfer",
+   "method": "GET",
+   "path": "/computers/{computer_id}/files/transfers/{transfer_id}"
+  },
+  {
+   "operationId": "startComputerUpload",
+   "method": "POST",
+   "path": "/computers/{computer_id}/files/uploads"
+  },
+  {
+   "operationId": "completeComputerUpload",
+   "method": "POST",
+   "path": "/computers/{computer_id}/files/uploads/{transfer_id}/complete"
+  },
+  {
+   "operationId": "resumeComputerUpload",
+   "method": "POST",
+   "path": "/computers/{computer_id}/files/uploads/{transfer_id}/resume"
+  },
+  {
+   "operationId": "forkComputer",
+   "method": "POST",
+   "path": "/computers/{computer_id}/fork"
+  },
+  {
+   "operationId": "handBackComputer",
+   "method": "POST",
+   "path": "/computers/{computer_id}/hand-back"
+  },
+  {
+   "operationId": "listComputerCommandHistory",
+   "method": "GET",
+   "path": "/computers/{computer_id}/history"
+  },
+  {
+   "operationId": "getComputerCommand",
+   "method": "GET",
+   "path": "/computers/{computer_id}/history/{command_id}"
+  },
+  {
+   "operationId": "listComputerJobs",
+   "method": "GET",
+   "path": "/computers/{computer_id}/jobs"
+  },
+  {
+   "operationId": "killComputerJob",
+   "method": "POST",
+   "path": "/computers/{computer_id}/jobs/{job_id}/kill"
+  },
+  {
+   "operationId": "getComputerJobLogs",
+   "method": "GET",
+   "path": "/computers/{computer_id}/jobs/{job_id}/logs"
+  },
+  {
+   "operationId": "waitComputerJob",
+   "method": "POST",
+   "path": "/computers/{computer_id}/jobs/{job_id}/wait"
+  },
+  {
+   "operationId": "getComputerLimits",
+   "method": "GET",
+   "path": "/computers/{computer_id}/limits"
+  },
+  {
+   "operationId": "listComputerLogs",
+   "method": "GET",
+   "path": "/computers/{computer_id}/logs"
+  },
+  {
+   "operationId": "getComputerMetrics",
+   "method": "GET",
+   "path": "/computers/{computer_id}/metrics"
+  },
+  {
+   "operationId": "pauseComputer",
+   "method": "POST",
+   "path": "/computers/{computer_id}/pause"
+  },
+  {
+   "operationId": "pauseComputerAgent",
+   "method": "POST",
+   "path": "/computers/{computer_id}/pause-agent"
+  },
+  {
+   "operationId": "publishComputerPort",
+   "method": "POST",
+   "path": "/computers/{computer_id}/ports"
+  },
+  {
+   "operationId": "unpublishComputerPort",
+   "method": "DELETE",
+   "path": "/computers/{computer_id}/ports/{port}"
+  },
+  {
+   "operationId": "listComputerProcesses",
+   "method": "GET",
+   "path": "/computers/{computer_id}/processes"
+  },
+  {
+   "operationId": "listComputerRecordings",
+   "method": "GET",
+   "path": "/computers/{computer_id}/recordings"
+  },
+  {
+   "operationId": "downloadComputerRecording",
+   "method": "GET",
+   "path": "/computers/{computer_id}/recordings/{recording_id}"
+  },
+  {
+   "operationId": "restoreComputer",
+   "method": "POST",
+   "path": "/computers/{computer_id}/restore"
+  },
+  {
+   "operationId": "resumeComputer",
+   "method": "POST",
+   "path": "/computers/{computer_id}/resume"
+  },
+  {
+   "operationId": "resumeComputerAgent",
+   "method": "POST",
+   "path": "/computers/{computer_id}/resume-agent"
+  },
+  {
+   "operationId": "screenshotComputer",
+   "method": "GET",
+   "path": "/computers/{computer_id}/screenshot"
+  },
+  {
+   "operationId": "openComputerSession",
+   "method": "POST",
+   "path": "/computers/{computer_id}/sessions"
+  },
+  {
+   "operationId": "getComputerSetup",
+   "method": "GET",
+   "path": "/computers/{computer_id}/setup"
+  },
+  {
+   "operationId": "startComputerSetup",
+   "method": "POST",
+   "path": "/computers/{computer_id}/setup"
+  },
+  {
+   "operationId": "createComputerSnapshot",
+   "method": "POST",
+   "path": "/computers/{computer_id}/snapshots"
+  },
+  {
+   "operationId": "revokeComputerSSHTokens",
+   "method": "DELETE",
+   "path": "/computers/{computer_id}/ssh-tokens"
+  },
+  {
+   "operationId": "createComputerSSHToken",
+   "method": "POST",
+   "path": "/computers/{computer_id}/ssh-tokens"
+  },
+  {
+   "operationId": "listComputerSteps",
+   "method": "GET",
+   "path": "/computers/{computer_id}/steps"
+  },
+  {
+   "operationId": "getComputerSystem",
+   "method": "GET",
+   "path": "/computers/{computer_id}/system"
+  },
+  {
+   "operationId": "takeOverComputer",
+   "method": "POST",
+   "path": "/computers/{computer_id}/take-over"
+  },
+  {
+   "operationId": "clearComputerTask",
+   "method": "DELETE",
+   "path": "/computers/{computer_id}/task"
+  },
+  {
+   "operationId": "setComputerTask",
+   "method": "PUT",
+   "path": "/computers/{computer_id}/task"
+  },
+  {
+   "operationId": "listComputerWindows",
+   "method": "GET",
+   "path": "/computers/{computer_id}/windows"
+  }
+ ],
+ "excluded": [
+  {
+   "path": "/computers/mcp",
+   "reason": "MCP JSON-RPC transport for MCP clients, not a REST call"
+  },
+  {
+   "path": "/computers/sessions/{kind}/{token}",
+   "reason": "WebSocket upgrade; the SDKs return the socket URL from openSession"
+  }
+ ]
+}

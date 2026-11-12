@@ -24,6 +24,165 @@ funding, err := client.AICredits.SetFunding(ctx, "assets", "managed")
 
 Keep account API keys and checkout creation on your server.
 
+## Computers
+
+Cloud computers any agent can drive. Use a computers key as the API key.
+
+```go
+computer, err := client.Computers.CreateAndWait(ctx, stackshift.CreateComputerInput{
+    ProjectID: projectID, Name: "inbox-helper", Template: "agent-desktop", Size: stackshift.NewComputerSize(4, 8, 20),
+}, "")
+result, err := client.Computers.Exec(ctx, computer.ID, stackshift.ComputerExecInput{Shell: "npm test", CWD: "/workspace/app"})
+err = client.Computers.WriteFile(ctx, computer.ID, "notes.txt", []byte("hello"), 0)
+shot, err := client.Computers.Act(ctx, computer.ID, []stackshift.ComputerAction{stackshift.ComputerClick(640, 360).WithScreenshot(), stackshift.ComputerType("hello")}, "", "")
+forks, err := client.Computers.Fork(ctx, computer.ID, stackshift.ComputerForkInput{Count: 3}, "")
+cdp, err := client.Computers.CDPURL(ctx, computer.ID)
+```
+
+`CDPURL` returns a WebSocket URL for Playwright's `connectOverCDP` or `chromedp.NewRemoteAllocator`. Mutations send an `Idempotency-Key`; pass one to choose it, or an empty string for a generated key. `Events` streams state changes and steps and reconnects from the last event.
+
+Pick a size from the template's sizes, such as `NewComputerSize(2, 8, 20)` or `NewComputerSize(4, 16, 20)`. `Region` on `CreateComputerInput` picks where it starts; `Regions` lists the regions open now.
+
+Tell people what an agent is doing. The dashboard shows the task and next step beside the screen, and `AskOwner` carries the next step on its card:
+
+```go
+task, next := "Book the flight", "Open the airline site"
+_, err = client.Computers.SetTask(ctx, computer.ID, stackshift.ComputerTaskInput{Task: &task, NextStep: &next})
+_, err = client.Computers.ActWith(ctx, computer.ID, actions, stackshift.ComputerActOptions{Task: task, NextStep: "Pick a seat"})
+_, err = client.Computers.AskOwner(ctx, computer.ID, stackshift.ComputerAskInput{Question: "Pay $240?", NextStep: "Send the receipt"})
+err = client.Computers.ClearTask(ctx, computer.ID)
+```
+
+`Computer` carries `RegionName`, `Task`, `NextStep`, `TaskUpdatedAt` and `ForkDurationMS`; templates carry `OSName`; approvals carry `NextStep`, `NotifiedAt` and `NotifiedChannels`.
+
+Read the machine without waking it or adding a step:
+
+```go
+system, err := client.Computers.System(ctx, computer.ID)
+windows, err := client.Computers.ListWindows(ctx, computer.ID)
+regions, err := client.Computers.Regions(ctx, projectID)
+```
+
+`ComputerInternetNone` blocks all outbound access (`ComputerInternetOpen` and `ComputerInternetAllowlist` are the others).
+
+The paying account's spending limit, defaults for new computers and notification choices. `ClearSpendCap` sends an explicit null to remove the limit; fields you leave out keep their value:
+
+```go
+settings, err := client.Computers.Settings(ctx, projectID)
+yes := true
+_, err = client.Computers.SaveSettings(ctx, projectID, stackshift.SaveComputerSettingsInput{
+    SpendCap: &stackshift.ComputerMoney{AmountMinor: 500_000, Currency: "NGN"}, DefaultApprovals: &yes,
+    Notifications: &stackshift.ComputerNotificationUpdate{Push: &yes},
+})
+_, err = client.Computers.SaveSettings(ctx, projectID, stackshift.SaveComputerSettingsInput{ClearSpendCap: true})
+```
+
+Run a setup on a computer, either at create time or later. A `ComputerSetupInput` holds exactly one of `Script`, `Devcontainer` or `Source`; `Source` on `CreateComputerInput` also takes a `Token` for a private repository. `MaxRunSeconds`, `ArchiveAfterSeconds` and `DeleteAfterSeconds` are `*int64` on `CreateComputerInput` and `UpdateComputerInput`, so `stackshift.ComputerSeconds(0)` is sent and clears the limit while `nil` leaves it alone:
+
+```go
+setup, err := client.Computers.StartSetup(ctx, computer.ID, stackshift.ComputerSetupInput{
+    Script: &stackshift.ComputerSetupScript{Content: "npm ci", CWD: "/workspace/app"},
+}, "")
+_, err = client.Computers.Update(ctx, computer.ID, stackshift.UpdateComputerInput{DeleteAfterSeconds: stackshift.ComputerSeconds(86400)})
+progress, err := client.Computers.Setup(ctx, computer.ID)
+```
+
+Computers CI runs GitHub Actions jobs that name a `stackshift-*` label on the project's computers. The labels include `stackshift-small-mem` (2 vCPU / 8 GB) and `stackshift-medium-mem` (4 vCPU / 16 GB):
+
+```go
+overview, err := client.Computers.CI.Overview(ctx, projectID)
+labels, err := client.Computers.CI.Labels(ctx, projectID)
+jobs, err := client.Computers.CI.Jobs(ctx, projectID, 50)
+connection, err := client.Computers.CI.Connect(ctx, projectID, installationID)
+err = client.Computers.CI.Disconnect(ctx, connection.ID)
+circle, err := client.Computers.CI.ConnectCircleCI(ctx, stackshift.ComputerCircleCIConnectInput{ProjectID: projectID, ResourceClass: "acme/stackshift", Size: "small", APIToken: apiToken})
+err = client.Computers.CI.DisconnectCircleCI(ctx, circle.ID)
+```
+
+Deleting a computer or a snapshot sends `X-StackShift-Confirm-Delete`, which the API requires (428 `confirmation_required` without it). `Delete` confirms with the id; `DeleteConfirmed` on `Computers` and `Computers.Snapshots` sends the id or name you pass.
+
+Import a Docker image as a snapshot and follow it:
+
+```go
+imported, err := client.Computers.ImportImage(ctx, stackshift.ImportComputerImageInput{
+    ProjectID: projectID, Image: "node:22", Name: "node-22",
+    Internet:   &stackshift.ComputerInternet{Mode: stackshift.ComputerInternetAllowlist, AllowedDomains: []string{"registry.npmjs.org"}},
+    IdlePolicy: &stackshift.ComputerIdlePolicy{PauseAfterSeconds: 600, Mode: "disk"},
+    Logins:     []string{"github"}, DeleteAfterSeconds: 604800,
+}, "")
+progress, err := client.Computers.Setup(ctx, imported.Computer.ID)
+```
+
+Prices include data out per GB (`EgressGB`, and `data_out` lines with `GB` in `Usage`). `PublicPricing` returns the naira and dollar rates, the free plan's allowance and each plan's running limit. It sends no key, and `FetchComputerPublicPricing(ctx, baseURL, httpClient)` does the same without a `Client` (an empty `baseURL` means `https://api.stackshift.cloud/api/v1`, a nil `httpClient` means `http.DefaultClient`):
+
+```go
+prices, err := stackshift.FetchComputerPublicPricing(ctx, "", nil)
+```
+
+Failures are `*APIError` with a `Code`; the `ComputerError...` constants name them. `ComputerErrorLimitExceeded` (429) means over your limits or free hours, `ComputerErrorCapacityBusy` (429) means the free share is busy so retry later, and `ComputerErrorSpendCapReached` (402) means the account's spending limit is reached.
+
+Every Computers route has a method. `testdata/computers-routes.json` lists the routes (regenerate it with `packages/computers-routes.py`), and `TestEveryComputersRouteHasASDKMethod` fails when a route has no method, a method sends the wrong verb or path, or a public route sends a key.
+
+Run commands with input and watch them. `Stdin` and `StdinOpen` on `ComputerExecInput` feed the command, `SendStdin` writes to a running one, and `ExecStream` calls you with `start`, `stdout`, `stderr`, `exit` and `error` events as they happen; return false to stop. `Exec` results carry `Truncated`, `Signal` and `DurationMS`:
+
+```go
+result, err := client.Computers.Exec(ctx, computer.ID, stackshift.ComputerExecInput{Command: []string{"cat"}, Stdin: "hello"})
+err = client.Computers.ExecStream(ctx, computer.ID, stackshift.ComputerExecInput{Shell: "make test"}, func(event stackshift.ComputerExecEvent) bool {
+    fmt.Print(event.Data)
+    return true
+})
+err = client.Computers.SendStdin(ctx, computer.ID, commandID, []byte("yes\n"), true)
+page, err := client.Computers.History(ctx, computer.ID, "", 20)
+last, err := client.Computers.Command(ctx, computer.ID, "")
+```
+
+Background jobs: `Jobs` lists them, `JobLogs` reads output from an offset, `FollowJobLogs` streams it (pass the last offset to resume), `WaitJob` waits up to `timeoutSeconds`, and `KillJob` sends a signal (`TERM` when empty):
+
+```go
+jobs, err := client.Computers.Jobs(ctx, computer.ID)
+err = client.Computers.FollowJobLogs(ctx, computer.ID, jobID, 0, func(event stackshift.ComputerJobLogEvent) bool {
+    fmt.Print(event.Data)
+    return event.Event != "exit"
+})
+done, err := client.Computers.WaitJob(ctx, computer.ID, jobID, 60)
+_, err = client.Computers.KillJob(ctx, computer.ID, jobID, "KILL")
+```
+
+Keep a computer awake while work runs, check its limits and metrics, and open SSH:
+
+```go
+lease, err := client.Computers.PutActivityLease(ctx, computer.ID, "nightly-build", 900)
+err = client.Computers.ReleaseActivityLease(ctx, computer.ID, "nightly-build")
+limits, err := client.Computers.Limits(ctx, computer.ID)
+metrics, err := client.Computers.Metrics(ctx, computer.ID, "")
+token, err := client.Computers.CreateSSHToken(ctx, computer.ID, 0)
+cert, err := client.Computers.SSHCertificate(ctx, computer.ID, publicKey)
+```
+
+Run a coding agent inside a computer and follow it. `FollowAgentEvents` stops when the conversation's turn ends:
+
+```go
+conversation, err := client.Computers.PromptAgent(ctx, computer.ID, stackshift.ComputerAgentPrompt{Prompt: "Fix the failing test", Provider: "claude"})
+err = client.Computers.FollowAgentEvents(ctx, computer.ID, conversation.ID, 0, 0, func(event stackshift.ComputerAgentEvent) bool {
+    fmt.Print(event.Text)
+    return true
+})
+_, err = client.Computers.SteerAgent(ctx, computer.ID, conversation.ID, "Try the other approach")
+_, err = client.Computers.InterruptAgent(ctx, computer.ID, conversation.ID)
+```
+
+`Remove` and `Mkdir` change files and folders. `StartUpload`, `ResumeUpload`, `CompleteUpload`, `StartDownload` and `Transfer` are the raw signed-part transfer calls; this SDK has no parallel uploader.
+
+Let an agent register itself and get a computers key with its owner's approval. These calls need no key, so they are package-level functions that take a base URL (empty means `https://api.stackshift.cloud/api/v1`) and an HTTP client (nil means the default):
+
+```go
+registration, err := stackshift.RegisterComputerAgent(ctx, "", nil, stackshift.ComputerAgentRegistrationInput{Name: "my-agent", Scopes: []stackshift.ComputerKeyScope{stackshift.ComputerScopeUse}})
+fmt.Println("Approve at", registration.VerificationURIComplete)
+issued, err := stackshift.WaitForComputerAgentKey(ctx, "", nil, registration)
+```
+
+`WaitForComputerAgentKey` polls at the registration's interval, adds 5 seconds after `slow_down`, keeps going on `authorization_pending`, and fails on any other code or when the claim expires. The owner's side is `AgentClaim` and `DecideAgentClaim(ctx, code, stackshift.ComputerAgentClaimDecision{Approve: true, Scopes: scopes, ProjectID: projectID})`. `Keys.Create` takes `Scopes` (`ComputerScopeRead`, `ComputerScopeWrite`, `ComputerScopeUse`, `ComputerScopeDelete`) and keys report theirs.
+
 ## Partner platforms
 
 Staff-enabled partner accounts buy domains for merchants from their StackShift wallet. Use an API token with the `partner:manage` scope (and `mail:manage` to run campaigns) on your server:
@@ -39,6 +198,30 @@ status, err := client.Partner.GetDomain(ctx, domain.ID)
 ```
 
 `Partner` also exposes `Overview`, `UpdateSettings`, `ListDomains` (with `Query`, `Attention` and `Website` to find the merchants that need you), `ConnectDomain` and `TransferInDomain` / `TransferInConnectedDomain` / `SwitchTransferNameservers` for domains the merchant already owns, `SetWebsite`, `RemoveWebsite`, `CheckWebsite` and `ListWebsiteProjects` for the storefront, `ListMailboxes`, `CreateMailbox`, `UpdateMailbox`, `CreateMailboxPasswordLink`, `PauseMailbox`, `ResumeMailbox`, `RemoveMailbox`, `CreateAlias`, `UpdateAlias` and `RemoveAlias` for merchant mailboxes, `StartMailMigration`, `GetMailMigration`, `SwitchMailMigration`, `CancelMailMigration`, `RetryMailMigration`, `RetryMailMigrationAccount` and `SkipMailMigrationAccount` for moving old email in, `RetryDomain`, `GetDiagnosis`, `RestoreDNS`, `TransferOut`, `ResumeBrand`, `GetComplaints`, `ListComplaintSources`, `SuppressNeverOpened`, `UndoSuppression`, `Usage`, `ListRequests` and `CreateRequest`. `TransferOut` needs the `partner:transfer` scope (or `*`); `partner:manage` alone is refused. Purchases are capped at 30 per minute and, per partner, at 25 domains in a rolling 24 hours (429 `daily_purchase_limit`; staff can raise it). Validation errors are 400, state conflicts are 409.
+
+## Computer Teams
+
+A team is several computers working one job, each running its own agent, with a shared folder, a private network and a message board. Same computers key as above.
+
+```go
+team, err := client.Teams.Create(ctx, stackshift.CreateTeamInput{
+    ProjectID: projectID, Name: "checkout-fix", Job: "Refunds fail on partial orders.",
+    Repository: &stackshift.TeamRepositoryInput{Repository: "github.com/northwind/api", Revision: "main"},
+    Members: []stackshift.TeamMemberInput{
+        {Name: "claude-fixer", Agent: "claude-code", Role: "writes the fix"},
+        {Name: "codex-reviewer", Agent: "codex"},
+    },
+    StopRule: stackshift.TeamStopDone,
+}, "")
+_, err = client.Teams.Send(ctx, team.ID, stackshift.SendTeamMessageInput{Text: "Start with the refund handler.", To: "claude-fixer"})
+page, err := client.Teams.WaitForMessages(ctx, team.ID, 0, time.Minute)
+err = client.Teams.StreamMessages(ctx, team.ID, page.NextSeq, true, func(message stackshift.TeamMessage) bool { fmt.Println(message.From.Name, message.Text); return true })
+files, err := client.Teams.Files(ctx, team.ID, "/shared")
+paused, err := client.Teams.Pause(ctx, team.ID)
+_, err = client.Teams.Delete(ctx, team.ID)
+```
+
+`Create` and `AddMember` send an `Idempotency-Key`; pass one to choose it, or an empty string for a generated key. `Update` takes pointers, so unset fields stay as they are; `ClearSpendLimit` removes the limit. `Delete` sends the confirmation header for you and removes every member computer and the shared folder. `RemoveMember` deletes the member's computer unless `keepComputer` is true. `ListMessages` takes `AfterSeq`, `Limit` and `Wait` (up to 25 seconds of long-polling), `WaitForMessages` keeps polling until a message arrives or the timeout passes, and `StreamMessages` reads the server-sent stream and reconnects from the last message. `Network` and `Activity` show each member's address, open ports and last terminal lines. Errors are `*APIError` with codes such as `team_not_found`, `member_not_found` and `team_invalid_state`.
 
 ## Connected agents
 

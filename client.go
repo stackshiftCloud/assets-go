@@ -58,9 +58,11 @@ type Client struct {
 	Agents           *AgentsClient
 	AICredits        *AICreditsClient
 	Assets           *AssetsClient
+	Computers        *ComputersClient
 	Databases        *DatabasesClient
 	Mail             *MailClient
 	Partner          *PartnerClient
+	Teams            *TeamsClient
 	WorkloadSecurity *WorkloadSecurityClient
 }
 
@@ -126,9 +128,11 @@ func New(options Options) (*Client, error) {
 	client.Assets.Connections = &AssetConnectionsClient{client: client}
 	client.Assets.Storage = &AssetStorageClient{client: client}
 	client.Assets.Migrations = &AssetMigrationsClient{client: client}
+	client.Computers = &ComputersClient{client: client, Keys: &ComputerKeysClient{client: client}, Snapshots: &ComputerSnapshotsClient{client: client}, CI: &ComputerCIClient{client: client}}
 	client.Agents = &AgentsClient{}
 	client.Agents.Connections = &AgentConnectionsClient{client: client, Operations: &AgentConnectionOperationsClient{client: client}}
 	client.AICredits = &AICreditsClient{client: client}
+	client.Teams = &TeamsClient{client: client}
 	client.Databases = &DatabasesClient{client: client}
 	client.Databases.Branches = &DatabaseBranchesClient{client: client}
 	client.Partner = &PartnerClient{client: client}
