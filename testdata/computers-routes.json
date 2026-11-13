@@ -99,6 +99,11 @@
    "path": "/computers/pricing"
   },
   {
+   "operationId": "ensureComputerProject",
+   "method": "POST",
+   "path": "/computers/project"
+  },
+  {
    "operationId": "getComputerPublicPricing",
    "method": "GET",
    "path": "/computers/public-pricing",
@@ -270,14 +275,44 @@
    "path": "/computers/{computer_id}/agent/conversations/{conversation_id}/interrupt"
   },
   {
+   "operationId": "getComputerAgentResult",
+   "method": "GET",
+   "path": "/computers/{computer_id}/agent/conversations/{conversation_id}/result"
+  },
+  {
    "operationId": "steerComputerAgent",
    "method": "POST",
    "path": "/computers/{computer_id}/agent/conversations/{conversation_id}/steer"
   },
   {
+   "operationId": "listComputerAgentFanouts",
+   "method": "GET",
+   "path": "/computers/{computer_id}/agent/fanouts"
+  },
+  {
+   "operationId": "getComputerAgentFanout",
+   "method": "GET",
+   "path": "/computers/{computer_id}/agent/fanouts/{fanout_id}"
+  },
+  {
+   "operationId": "keepComputerAgentFork",
+   "method": "POST",
+   "path": "/computers/{computer_id}/agent/fanouts/{fanout_id}/keep"
+  },
+  {
    "operationId": "promptComputerAgent",
    "method": "POST",
    "path": "/computers/{computer_id}/agent/prompt"
+  },
+  {
+   "operationId": "listComputerAgentProviders",
+   "method": "GET",
+   "path": "/computers/{computer_id}/agent/providers"
+  },
+  {
+   "operationId": "listComputerAgentTurns",
+   "method": "GET",
+   "path": "/computers/{computer_id}/agent/turns"
   },
   {
    "operationId": "listComputerApprovals",

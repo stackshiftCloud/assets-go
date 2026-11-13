@@ -8,6 +8,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -278,6 +280,92 @@ func (c *ComputersClient) SSHCertificate(ctx context.Context, computerID, public
 func (c *ComputersClient) PromptAgent(ctx context.Context, id string, input ComputerAgentPrompt) (*ComputerAgentConversation, error) {
 	var out ComputerAgentConversation
 	if err := c.client.computerRequest(ctx, http.MethodPost, "/computers/"+computerSeg(id)+"/agent/prompt", input, nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *ComputersClient) PromptAgentFanout(ctx context.Context, id string, input ComputerAgentFanoutPrompt) (*ComputerAgentFanout, error) {
+	var out ComputerAgentFanout
+	if err := c.client.computerRequest(ctx, http.MethodPost, "/computers/"+computerSeg(id)+"/agent/prompt", input, nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *ComputersClient) AttachAgentFile(ctx context.Context, id, localPath string) (string, error) {
+	content, err := os.ReadFile(localPath)
+	if err != nil {
+		return "", err
+	}
+	remote := "/workspace/.stackshift/attachments/" + strings.ReplaceAll(ComputerIdempotencyKey(), "-", "") + "/" + filepath.Base(localPath)
+	if err := c.WriteFile(ctx, id, remote, content, 0); err != nil {
+		return "", err
+	}
+	return remote, nil
+}
+
+func (c *ComputersClient) AgentProviders(ctx context.Context, id string, refresh bool) ([]ComputerAgentProviderInfo, error) {
+	var out struct {
+		Providers []ComputerAgentProviderInfo `json:"providers"`
+	}
+	query := map[string]string{}
+	if refresh {
+		query["refresh"] = "1"
+	}
+	if err := c.client.computerRequest(ctx, http.MethodGet, "/computers/"+computerSeg(id)+"/agent/providers"+computerQuery(query), nil, nil, &out); err != nil {
+		return nil, err
+	}
+	return out.Providers, nil
+}
+
+func (c *ComputersClient) AgentResult(ctx context.Context, id, conversationID string, wait bool) (*ComputerAgentResult, error) {
+	var out ComputerAgentResult
+	query := map[string]string{}
+	if wait {
+		query["wait"] = "1"
+	}
+	if err := c.client.computerRequest(ctx, http.MethodGet, "/computers/"+computerSeg(id)+"/agent/conversations/"+computerSeg(conversationID)+"/result"+computerQuery(query), nil, nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *ComputersClient) AgentTurns(ctx context.Context, id string, limit int) ([]ComputerAgentTurn, error) {
+	var out struct {
+		Turns []ComputerAgentTurn `json:"turns"`
+	}
+	query := map[string]string{}
+	if limit > 0 {
+		query["limit"] = strconv.Itoa(limit)
+	}
+	if err := c.client.computerRequest(ctx, http.MethodGet, "/computers/"+computerSeg(id)+"/agent/turns"+computerQuery(query), nil, nil, &out); err != nil {
+		return nil, err
+	}
+	return out.Turns, nil
+}
+
+func (c *ComputersClient) AgentFanouts(ctx context.Context, id string) ([]ComputerAgentFanout, error) {
+	var out struct {
+		Fanouts []ComputerAgentFanout `json:"fanouts"`
+	}
+	if err := c.client.computerRequest(ctx, http.MethodGet, "/computers/"+computerSeg(id)+"/agent/fanouts", nil, nil, &out); err != nil {
+		return nil, err
+	}
+	return out.Fanouts, nil
+}
+
+func (c *ComputersClient) AgentFanout(ctx context.Context, id, fanoutID string) (*ComputerAgentFanout, error) {
+	var out ComputerAgentFanout
+	if err := c.client.computerRequest(ctx, http.MethodGet, "/computers/"+computerSeg(id)+"/agent/fanouts/"+computerSeg(fanoutID), nil, nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *ComputersClient) KeepAgentFork(ctx context.Context, id, fanoutID, forkComputerID string) (*ComputerAgentFanout, error) {
+	var out ComputerAgentFanout
+	if err := c.client.computerRequest(ctx, http.MethodPost, "/computers/"+computerSeg(id)+"/agent/fanouts/"+computerSeg(fanoutID)+"/keep", map[string]string{"computer_id": forkComputerID}, nil, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil

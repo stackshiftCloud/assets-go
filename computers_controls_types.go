@@ -143,6 +143,30 @@ type ComputerSSHCertificate struct {
 	ExpiresAt   time.Time `json:"expires_at"`
 }
 
+const (
+	ComputerAgentClaude   = "claude"
+	ComputerAgentCodex    = "codex"
+	ComputerAgentGemini   = "gemini"
+	ComputerAgentOpenCode = "opencode"
+	ComputerAgentCursor   = "cursor"
+	ComputerAgentCopilot  = "copilot"
+	ComputerAgentAmp      = "amp"
+	ComputerAgentQwen     = "qwen"
+)
+
+var ComputerAgentProviders = []string{ComputerAgentClaude, ComputerAgentCodex, ComputerAgentGemini, ComputerAgentOpenCode, ComputerAgentCursor, ComputerAgentCopilot, ComputerAgentAmp, ComputerAgentQwen}
+
+const (
+	ComputerAgentRunning     = "running"
+	ComputerAgentIdle        = "idle"
+	ComputerAgentFailed      = "failed"
+	ComputerAgentInterrupted = "interrupted"
+	ComputerAgentNeedsInput  = "needs_input"
+	ComputerAgentLost        = "lost"
+	ComputerAgentCompleted   = "completed"
+	ComputerAgentStarting    = "starting"
+)
+
 type ComputerAgentPrompt struct {
 	Prompt           string            `json:"prompt"`
 	ConversationID   string            `json:"conversation_id,omitempty"`
@@ -151,31 +175,118 @@ type ComputerAgentPrompt struct {
 	CWD              string            `json:"cwd,omitempty"`
 	Env              map[string]string `json:"env,omitempty"`
 	SecretBindingIDs []string          `json:"secret_binding_ids,omitempty"`
+	Attachments      []string          `json:"attachments,omitempty"`
+}
+
+type ComputerAgentFanoutPrompt struct {
+	Prompt           string            `json:"prompt,omitempty"`
+	Prompts          []string          `json:"prompts,omitempty"`
+	Forks            int               `json:"forks,omitempty"`
+	Provider         string            `json:"provider,omitempty"`
+	Model            string            `json:"model,omitempty"`
+	CWD              string            `json:"cwd,omitempty"`
+	Env              map[string]string `json:"env,omitempty"`
+	SecretBindingIDs []string          `json:"secret_binding_ids,omitempty"`
+	Attachments      []string          `json:"attachments,omitempty"`
+}
+
+type ComputerAgentChangedFiles struct {
+	Files      int    `json:"files"`
+	Insertions int    `json:"insertions"`
+	Deletions  int    `json:"deletions"`
+	Stat       string `json:"stat"`
+}
+
+type ComputerAgentTurnResult struct {
+	DurationMS   int64                      `json:"duration_ms"`
+	ExitCode     *int                       `json:"exit_code,omitempty"`
+	LastMessage  string                     `json:"last_message,omitempty"`
+	ChangedFiles *ComputerAgentChangedFiles `json:"changed_files,omitempty"`
 }
 
 type ComputerAgentConversation struct {
-	ID        string    `json:"id"`
-	Provider  string    `json:"provider"`
-	Model     string    `json:"model,omitempty"`
-	CWD       string    `json:"cwd"`
-	SessionID string    `json:"session_id,omitempty"`
-	Status    string    `json:"status"`
-	ExitCode  *int      `json:"exit_code,omitempty"`
-	Turns     int       `json:"turns"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID         string                   `json:"id"`
+	Provider   string                   `json:"provider"`
+	Model      string                   `json:"model,omitempty"`
+	CWD        string                   `json:"cwd"`
+	SessionID  string                   `json:"session_id,omitempty"`
+	Status     string                   `json:"status"`
+	ExitCode   *int                     `json:"exit_code,omitempty"`
+	Turns      int                      `json:"turns"`
+	LastPrompt string                   `json:"last_prompt,omitempty"`
+	Result     *ComputerAgentTurnResult `json:"result,omitempty"`
+	CreatedAt  time.Time                `json:"created_at"`
+	UpdatedAt  time.Time                `json:"updated_at"`
 }
 
 type ComputerAgentEvent struct {
-	Seq      int64          `json:"seq"`
-	Turn     int            `json:"turn"`
-	Time     time.Time      `json:"time"`
-	Kind     string         `json:"kind"`
-	Data     map[string]any `json:"data,omitempty"`
-	Text     string         `json:"text,omitempty"`
-	Prompt   string         `json:"prompt,omitempty"`
-	Status   string         `json:"status,omitempty"`
-	ExitCode *int           `json:"exit_code,omitempty"`
+	Seq      int64                    `json:"seq"`
+	Turn     int                      `json:"turn"`
+	Time     time.Time                `json:"time"`
+	Kind     string                   `json:"kind"`
+	Data     map[string]any           `json:"data,omitempty"`
+	Text     string                   `json:"text,omitempty"`
+	Tool     string                   `json:"tool,omitempty"`
+	Command  string                   `json:"command,omitempty"`
+	Path     string                   `json:"path,omitempty"`
+	Prompt   string                   `json:"prompt,omitempty"`
+	Status   string                   `json:"status,omitempty"`
+	ExitCode *int                     `json:"exit_code,omitempty"`
+	Result   *ComputerAgentTurnResult `json:"result,omitempty"`
+}
+
+type ComputerAgentProviderInfo struct {
+	Provider     string   `json:"provider"`
+	Name         string   `json:"name"`
+	Installed    bool     `json:"installed"`
+	Version      string   `json:"version,omitempty"`
+	SignedIn     bool     `json:"signed_in"`
+	Method       string   `json:"method,omitempty"`
+	LoginCommand []string `json:"login_command"`
+	ModelKeys    []string `json:"model_keys"`
+}
+
+type ComputerAgentResult struct {
+	ConversationID string                   `json:"conversation_id"`
+	Provider       string                   `json:"provider"`
+	Turn           int                      `json:"turn"`
+	Status         string                   `json:"status"`
+	Result         *ComputerAgentTurnResult `json:"result,omitempty"`
+}
+
+type ComputerAgentTurn struct {
+	ID             string                   `json:"id"`
+	ConversationID string                   `json:"conversation_id"`
+	Turn           int                      `json:"turn"`
+	Provider       string                   `json:"provider"`
+	Model          string                   `json:"model"`
+	Prompt         string                   `json:"prompt"`
+	Status         string                   `json:"status"`
+	Error          string                   `json:"error"`
+	Result         *ComputerAgentTurnResult `json:"result"`
+	FanoutID       *string                  `json:"fanout_id"`
+	CreatedAt      time.Time                `json:"created_at"`
+	EndedAt        *time.Time               `json:"ended_at"`
+}
+
+type ComputerAgentFork struct {
+	ComputerID     string                   `json:"computer_id"`
+	Name           string                   `json:"name"`
+	State          string                   `json:"state"`
+	Prompt         string                   `json:"prompt"`
+	ConversationID string                   `json:"conversation_id,omitempty"`
+	Status         string                   `json:"status"`
+	Error          string                   `json:"error,omitempty"`
+	Result         *ComputerAgentTurnResult `json:"result,omitempty"`
+}
+
+type ComputerAgentFanout struct {
+	ID               string              `json:"id"`
+	SourceComputerID string              `json:"source_computer_id"`
+	Provider         string              `json:"provider"`
+	Model            string              `json:"model,omitempty"`
+	CreatedAt        time.Time           `json:"created_at"`
+	Forks            []ComputerAgentFork `json:"forks"`
 }
 
 type ComputerAgentEventPage struct {

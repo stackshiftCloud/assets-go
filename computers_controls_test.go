@@ -8,6 +8,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -568,5 +571,77 @@ func TestComputerAgentRegistrationAndKeyPolling(t *testing.T) {
 	mu.Unlock()
 	if _, err := WaitForComputerAgentKey(cancelled, base, nil, registration); err == nil {
 		t.Fatal("cancelled context must stop the wait")
+	}
+}
+
+func TestComputerEnsureProject(t *testing.T) {
+	client, fake := newControlServer(t, func(w http.ResponseWriter, r *http.Request, call controlCall) {
+		writeJSON(w, 201, map[string]any{"id": "p1", "name": "Computers", "created": true})
+	})
+	project, err := client.Computers.EnsureProject(context.Background())
+	if err != nil || project.ID != "p1" || !project.Created || fake.last().Method != "POST" || fake.last().Path != "/computers/project" {
+		t.Fatalf("ensure project %+v %v %+v", project, err, fake.last())
+	}
+}
+
+func TestComputerAgentProvidersResultFanoutsAndAttach(t *testing.T) {
+	client, fake := newControlServer(t, func(w http.ResponseWriter, r *http.Request, call controlCall) {
+		switch {
+		case call.Path == "/computers/c1/agent/providers":
+			writeJSON(w, 200, map[string]any{"providers": []map[string]any{{"provider": "gemini", "name": "Gemini CLI", "installed": true, "signed_in": false, "login_command": []string{"gemini"}, "model_keys": []string{"gemini"}}}})
+		case call.Path == "/computers/c1/agent/conversations/v1/result":
+			writeJSON(w, 200, map[string]any{"conversation_id": "v1", "provider": "claude", "turn": 2, "status": "idle", "result": map[string]any{"duration_ms": 1200, "exit_code": 0, "last_message": "done", "changed_files": map[string]any{"files": 1, "stat": " a.go | 4 +++-", "insertions": 3, "deletions": 1}}})
+		case call.Path == "/computers/c1/agent/prompt":
+			writeJSON(w, 202, map[string]any{"id": "f1", "source_computer_id": "c1", "provider": "codex", "created_at": "2026-11-12T00:00:00Z", "forks": []map[string]any{{"computer_id": "c2", "name": "fork-1", "state": "running", "prompt": "a", "status": "starting"}}})
+		case call.Path == "/computers/c1/agent/turns":
+			writeJSON(w, 200, map[string]any{"turns": []map[string]any{{"id": "t1", "conversation_id": "", "turn": 1, "provider": "codex", "model": "", "prompt": "a", "status": "starting", "error": "", "result": nil, "fanout_id": "f1", "created_at": "2026-11-12T00:00:00Z", "ended_at": nil}}})
+		case call.Path == "/computers/c1/agent/fanouts":
+			writeJSON(w, 200, map[string]any{"fanouts": []map[string]any{{"id": "f1", "forks": []map[string]any{}}}})
+		case call.Path == "/computers/c1/agent/fanouts/f1" || call.Path == "/computers/c1/agent/fanouts/f1/keep":
+			writeJSON(w, 200, map[string]any{"id": "f1", "forks": []map[string]any{}})
+		case call.Path == "/computers/c1/files":
+			w.WriteHeader(204)
+		default:
+			writeFailure(w, 404, "invalid_request", "no route")
+		}
+	})
+	ctx := context.Background()
+
+	providers, err := client.Computers.AgentProviders(ctx, "c1", true)
+	if err != nil || len(providers) != 1 || providers[0].Provider != ComputerAgentGemini || fake.last().Method != "GET" || fake.last().Query["refresh"] != "1" {
+		t.Fatalf("providers %+v %v %+v", providers, err, fake.last())
+	}
+	result, err := client.Computers.AgentResult(ctx, "c1", "v1", true)
+	if err != nil || result.Turn != 2 || result.Result.ChangedFiles.Insertions != 3 || fake.last().Query["wait"] != "1" {
+		t.Fatalf("result %+v %v %+v", result, err, fake.last())
+	}
+	fanout, err := client.Computers.PromptAgentFanout(ctx, "c1", ComputerAgentFanoutPrompt{Prompts: []string{"a", "b"}, Provider: ComputerAgentCodex})
+	body := fake.last().body(t)
+	if err != nil || fanout.ID != "f1" || fanout.Forks[0].ComputerID != "c2" || body["prompts"] == nil || body["forks"] != nil || body["prompt"] != nil {
+		t.Fatalf("fanout %+v %v %v", fanout, err, body)
+	}
+	if _, err := client.Computers.PromptAgent(ctx, "c1", ComputerAgentPrompt{Prompt: "x", Attachments: []string{"/workspace/.stackshift/attachments/a/b.png"}}); err != nil || fake.last().body(t)["attachments"] == nil {
+		t.Fatalf("attachments not sent %v %s", err, fake.last().Raw)
+	}
+	if turns, err := client.Computers.AgentTurns(ctx, "c1", 20); err != nil || len(turns) != 1 || turns[0].Status != ComputerAgentStarting || turns[0].EndedAt != nil || *turns[0].FanoutID != "f1" || fake.last().Query["limit"] != "20" {
+		t.Fatalf("turns %+v %v %+v", turns, err, fake.last())
+	}
+	if list, err := client.Computers.AgentFanouts(ctx, "c1"); err != nil || len(list) != 1 || fake.last().Path != "/computers/c1/agent/fanouts" {
+		t.Fatalf("fanouts %+v %v", list, err)
+	}
+	if got, err := client.Computers.AgentFanout(ctx, "c1", "f1"); err != nil || got.ID != "f1" || fake.last().Path != "/computers/c1/agent/fanouts/f1" {
+		t.Fatalf("fanout %+v %v", got, err)
+	}
+	if kept, err := client.Computers.KeepAgentFork(ctx, "c1", "f1", "c2"); err != nil || kept.ID != "f1" || fake.last().Method != "POST" || fake.last().Path != "/computers/c1/agent/fanouts/f1/keep" || fake.last().body(t)["computer_id"] != "c2" {
+		t.Fatalf("keep %+v %v", kept, err)
+	}
+
+	file := filepath.Join(t.TempDir(), "spec.md")
+	if err := os.WriteFile(file, []byte("hello"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	remote, err := client.Computers.AttachAgentFile(ctx, "c1", file)
+	if err != nil || !regexp.MustCompile(`^/workspace/\.stackshift/attachments/[0-9a-f]+/spec\.md$`).MatchString(remote) || fake.last().Method != "PUT" || fake.last().Query["path"] != remote || string(fake.last().Raw) != "hello" {
+		t.Fatalf("attach %q %v %+v", remote, err, fake.last())
 	}
 }

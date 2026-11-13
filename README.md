@@ -53,6 +53,8 @@ _, err = client.Computers.AskOwner(ctx, computer.ID, stackshift.ComputerAskInput
 err = client.Computers.ClearTask(ctx, computer.ID)
 ```
 
+`Computers.EnsureProject(ctx)` returns the project computers go in (`ID`, `Name`, `Created`), making one named "Computers" if the account has none; it needs a user token.
+
 `Computer` carries `RegionName`, `Task`, `NextStep`, `TaskUpdatedAt` and `ForkDurationMS`; templates carry `OSName`; approvals carry `NextStep`, `NotifiedAt` and `NotifiedChannels`.
 
 Read the machine without waking it or adding a step:
@@ -169,6 +171,21 @@ err = client.Computers.FollowAgentEvents(ctx, computer.ID, conversation.ID, 0, 0
 })
 _, err = client.Computers.SteerAgent(ctx, computer.ID, conversation.ID, "Try the other approach")
 _, err = client.Computers.InterruptAgent(ctx, computer.ID, conversation.ID)
+```
+
+Providers are `ComputerAgentProviders` (`ComputerAgentClaude`, `ComputerAgentCodex`, `ComputerAgentGemini`, `ComputerAgentOpenCode`, `ComputerAgentCursor`, `ComputerAgentCopilot`, `ComputerAgentAmp`, `ComputerAgentQwen`). Attach files, read the result, and try one task several ways:
+
+```go
+providers, err := client.Computers.AgentProviders(ctx, computer.ID, false)
+spec, err := client.Computers.AttachAgentFile(ctx, computer.ID, "./spec.md")
+conversation, err := client.Computers.PromptAgent(ctx, computer.ID, stackshift.ComputerAgentPrompt{Prompt: "Fix the failing test", Provider: stackshift.ComputerAgentClaude, Attachments: []string{spec}})
+result, err := client.Computers.AgentResult(ctx, computer.ID, conversation.ID, true)
+turns, err := client.Computers.AgentTurns(ctx, computer.ID, 20)
+
+fanout, err := client.Computers.PromptAgentFanout(ctx, computer.ID, stackshift.ComputerAgentFanoutPrompt{Prompts: []string{"Fix it with a retry", "Fix it with a lock"}, Provider: stackshift.ComputerAgentCodex})
+fanout, err = client.Computers.AgentFanout(ctx, computer.ID, fanout.ID)
+fanout, err = client.Computers.KeepAgentFork(ctx, computer.ID, fanout.ID, fanout.Forks[0].ComputerID)
+fanouts, err := client.Computers.AgentFanouts(ctx, computer.ID)
 ```
 
 `Remove` and `Mkdir` change files and folders. `StartUpload`, `ResumeUpload`, `CompleteUpload`, `StartDownload` and `Transfer` are the raw signed-part transfer calls; this SDK has no parallel uploader.

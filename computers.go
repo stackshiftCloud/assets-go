@@ -145,6 +145,20 @@ func computerAPIError(status int, raw []byte) error {
 	return &APIError{StatusCode: status, Message: firstNonEmpty(strings.TrimSpace(string(raw)), http.StatusText(status))}
 }
 
+type ComputerProject struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Created bool   `json:"created"`
+}
+
+func (c *ComputersClient) EnsureProject(ctx context.Context) (*ComputerProject, error) {
+	var out ComputerProject
+	if err := c.client.computerRequest(ctx, http.MethodPost, "/computers/project", nil, nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *ComputersClient) Templates(ctx context.Context, projectID string) ([]ComputerTemplate, error) {
 	var out []ComputerTemplate
 	err := c.client.computerRequest(ctx, http.MethodGet, "/computers/templates"+computerQuery(map[string]string{"project_id": projectID}), nil, nil, &out)

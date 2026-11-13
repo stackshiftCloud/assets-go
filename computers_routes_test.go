@@ -132,6 +132,10 @@ var computerRouteCalls = map[string]func(ctx context.Context, c *ComputersClient
 		_, err := c.SSHCertificate(ctx, "c1", "ssh-ed25519 AAAA")
 		return err
 	},
+	"ensureComputerProject": func(ctx context.Context, c *ComputersClient) error {
+		_, err := c.EnsureProject(ctx)
+		return err
+	},
 	"listComputerTemplates": func(ctx context.Context, c *ComputersClient) error {
 		_, err := c.Templates(ctx, "p1")
 		return err
@@ -180,6 +184,30 @@ var computerRouteCalls = map[string]func(ctx context.Context, c *ComputersClient
 	},
 	"steerComputerAgent": func(ctx context.Context, c *ComputersClient) error {
 		_, err := c.SteerAgent(ctx, "c1", "v1", "go left")
+		return err
+	},
+	"listComputerAgentProviders": func(ctx context.Context, c *ComputersClient) error {
+		_, err := c.AgentProviders(ctx, "c1", false)
+		return err
+	},
+	"getComputerAgentResult": func(ctx context.Context, c *ComputersClient) error {
+		_, err := c.AgentResult(ctx, "c1", "v1", false)
+		return err
+	},
+	"listComputerAgentTurns": func(ctx context.Context, c *ComputersClient) error {
+		_, err := c.AgentTurns(ctx, "c1", 0)
+		return err
+	},
+	"listComputerAgentFanouts": func(ctx context.Context, c *ComputersClient) error {
+		_, err := c.AgentFanouts(ctx, "c1")
+		return err
+	},
+	"getComputerAgentFanout": func(ctx context.Context, c *ComputersClient) error {
+		_, err := c.AgentFanout(ctx, "c1", "f1")
+		return err
+	},
+	"keepComputerAgentFork": func(ctx context.Context, c *ComputersClient) error {
+		_, err := c.KeepAgentFork(ctx, "c1", "f1", "c2")
 		return err
 	},
 	"promptComputerAgent": func(ctx context.Context, c *ComputersClient) error {
