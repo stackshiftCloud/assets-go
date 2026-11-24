@@ -55,7 +55,7 @@ err = client.Computers.ClearTask(ctx, computer.ID)
 
 `Computers.EnsureProject(ctx)` returns the project computers go in (`ID`, `Name`, `Created`), making one named "Computers" if the account has none; it needs a user token.
 
-`Computer` carries `RegionName`, `Task`, `NextStep`, `TaskUpdatedAt` and `ForkDurationMS`; templates carry `OSName`; approvals carry `NextStep`, `NotifiedAt` and `NotifiedChannels`.
+`Computer` carries `RegionName`, `Task`, `NextStep`, `TaskUpdatedAt` and `ForkDurationMS`; templates carry `OSName`, `MinDiskBytes` and `MaxDiskBytes`; approvals carry `NextStep`, `NotifiedAt` and `NotifiedChannels`.
 
 Read the machine without waking it or adding a step:
 
@@ -177,6 +177,7 @@ Providers are `ComputerAgentProviders` (`ComputerAgentClaude`, `ComputerAgentCod
 
 ```go
 providers, err := client.Computers.AgentProviders(ctx, computer.ID, false)
+models, err := client.Computers.AgentModels(ctx, computer.ID, stackshift.ComputerAgentClaude, "")
 spec, err := client.Computers.AttachAgentFile(ctx, computer.ID, "./spec.md")
 conversation, err := client.Computers.PromptAgent(ctx, computer.ID, stackshift.ComputerAgentPrompt{Prompt: "Fix the failing test", Provider: stackshift.ComputerAgentClaude, Attachments: []string{spec}})
 result, err := client.Computers.AgentResult(ctx, computer.ID, conversation.ID, true)

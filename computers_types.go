@@ -74,6 +74,8 @@ type ComputerTemplate struct {
 	Version          string         `json:"version"`
 	Desktop          bool           `json:"desktop"`
 	DefaultDiskBytes int64          `json:"default_disk_bytes"`
+	MinDiskBytes     int64          `json:"min_disk_bytes"`
+	MaxDiskBytes     int64          `json:"max_disk_bytes"`
 	Sizes            []ComputerSize `json:"sizes"`
 	OSName           string         `json:"os_name,omitempty"`
 }

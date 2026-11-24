@@ -190,6 +190,10 @@ var computerRouteCalls = map[string]func(ctx context.Context, c *ComputersClient
 		_, err := c.AgentProviders(ctx, "c1", false)
 		return err
 	},
+	"listComputerAgentModels": func(ctx context.Context, c *ComputersClient) error {
+		_, err := c.AgentModels(ctx, "c1", "", "")
+		return err
+	},
 	"getComputerAgentResult": func(ctx context.Context, c *ComputersClient) error {
 		_, err := c.AgentResult(ctx, "c1", "v1", false)
 		return err

@@ -300,6 +300,11 @@
    "path": "/computers/{computer_id}/agent/fanouts/{fanout_id}/keep"
   },
   {
+   "operationId": "listComputerAgentModels",
+   "method": "GET",
+   "path": "/computers/{computer_id}/agent/models"
+  },
+  {
    "operationId": "promptComputerAgent",
    "method": "POST",
    "path": "/computers/{computer_id}/agent/prompt"

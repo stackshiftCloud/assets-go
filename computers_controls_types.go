@@ -246,6 +246,16 @@ type ComputerAgentProviderInfo struct {
 	ModelKeys    []string `json:"model_keys"`
 }
 
+type ComputerAgentModel struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type ComputerAgentModelList struct {
+	Models []ComputerAgentModel `json:"models"`
+	Source string               `json:"source"`
+}
+
 type ComputerAgentResult struct {
 	ConversationID string                   `json:"conversation_id"`
 	Provider       string                   `json:"provider"`

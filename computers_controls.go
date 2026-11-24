@@ -319,6 +319,21 @@ func (c *ComputersClient) AgentProviders(ctx context.Context, id string, refresh
 	return out.Providers, nil
 }
 
+func (c *ComputersClient) AgentModels(ctx context.Context, id, provider, secretBindingID string) (*ComputerAgentModelList, error) {
+	var out ComputerAgentModelList
+	query := map[string]string{}
+	if provider != "" {
+		query["provider"] = provider
+	}
+	if secretBindingID != "" {
+		query["secret_binding_id"] = secretBindingID
+	}
+	if err := c.client.computerRequest(ctx, http.MethodGet, "/computers/"+computerSeg(id)+"/agent/models"+computerQuery(query), nil, nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *ComputersClient) AgentResult(ctx context.Context, id, conversationID string, wait bool) (*ComputerAgentResult, error) {
 	var out ComputerAgentResult
 	query := map[string]string{}

@@ -589,6 +589,8 @@ func TestComputerAgentProvidersResultFanoutsAndAttach(t *testing.T) {
 		switch {
 		case call.Path == "/computers/c1/agent/providers":
 			writeJSON(w, 200, map[string]any{"providers": []map[string]any{{"provider": "gemini", "name": "Gemini CLI", "installed": true, "signed_in": false, "login_command": []string{"gemini"}, "model_keys": []string{"gemini"}}}})
+		case call.Path == "/computers/c1/agent/models":
+			writeJSON(w, 200, map[string]any{"models": []map[string]any{{"id": "gpt-5", "name": "gpt-5"}}, "source": "provider"})
 		case call.Path == "/computers/c1/agent/conversations/v1/result":
 			writeJSON(w, 200, map[string]any{"conversation_id": "v1", "provider": "claude", "turn": 2, "status": "idle", "result": map[string]any{"duration_ms": 1200, "exit_code": 0, "last_message": "done", "changed_files": map[string]any{"files": 1, "stat": " a.go | 4 +++-", "insertions": 3, "deletions": 1}}})
 		case call.Path == "/computers/c1/agent/prompt":
@@ -610,6 +612,10 @@ func TestComputerAgentProvidersResultFanoutsAndAttach(t *testing.T) {
 	providers, err := client.Computers.AgentProviders(ctx, "c1", true)
 	if err != nil || len(providers) != 1 || providers[0].Provider != ComputerAgentGemini || fake.last().Method != "GET" || fake.last().Query["refresh"] != "1" {
 		t.Fatalf("providers %+v %v %+v", providers, err, fake.last())
+	}
+	list, err := client.Computers.AgentModels(ctx, "c1", ComputerAgentCodex, "b1")
+	if err != nil || list.Source != "provider" || list.Models[0].ID != "gpt-5" || fake.last().Method != "GET" || fake.last().Query["provider"] != "codex" || fake.last().Query["secret_binding_id"] != "b1" {
+		t.Fatalf("models %+v %v %+v", list, err, fake.last())
 	}
 	result, err := client.Computers.AgentResult(ctx, "c1", "v1", true)
 	if err != nil || result.Turn != 2 || result.Result.ChangedFiles.Insertions != 3 || fake.last().Query["wait"] != "1" {

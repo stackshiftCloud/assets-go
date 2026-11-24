@@ -147,7 +147,7 @@ func (m *computersMock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	body, path, query := call.Body, call.Path, call.Query
 	switch {
 	case r.Method == "GET" && path == "/computers/templates":
-		writeJSON(w, 200, []map[string]any{{"slug": "agent-desktop", "name": "Agent desktop", "description": "d", "version": "1", "desktop": true, "default_disk_bytes": 21474836480, "sizes": []any{}}})
+		writeJSON(w, 200, []map[string]any{{"slug": "agent-desktop", "name": "Agent desktop", "description": "d", "version": "1", "desktop": true, "default_disk_bytes": 21474836480, "min_disk_bytes": 21474836480, "max_disk_bytes": 549755813888, "sizes": []any{}}})
 		return
 	case path == "/computers" && r.Method == "GET":
 		var items []map[string]any
@@ -601,7 +601,7 @@ func TestComputersLifecycleExecFilesPortsAndActions(t *testing.T) {
 	ctx := context.Background()
 
 	templates, err := client.Computers.Templates(ctx, computersProject)
-	if err != nil || templates[0].Slug != "agent-desktop" {
+	if err != nil || templates[0].Slug != "agent-desktop" || templates[0].MinDiskBytes != 20<<30 || templates[0].MaxDiskBytes != 512<<30 {
 		t.Fatalf("templates %v %v", templates, err)
 	}
 	input := CreateComputerInput{ProjectID: computersProject, Name: "inbox-helper", Template: "agent-desktop", Size: NewComputerSize(4, 8, 20)}
