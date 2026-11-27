@@ -165,3 +165,22 @@ func (a *AssetsClient) GenerateAsset(
 		map[string]string{"Idempotency-Key": idempotencyKey}, &job)
 	return &job, err
 }
+
+type AssetAutomationTool struct {
+	Action      string `json:"action"`
+	MCPTool     string `json:"mcp_tool"`
+	Description string `json:"description"`
+	Kind        string `json:"kind"`
+}
+
+type AssetAutomationOverview struct {
+	MCPEndpoint string                `json:"mcp_endpoint"`
+	AuthMethod  string                `json:"auth_method"`
+	Tools       []AssetAutomationTool `json:"tools"`
+}
+
+func (a *AssetsClient) AutomationOverview(ctx context.Context) (*AssetAutomationOverview, error) {
+	var overview AssetAutomationOverview
+	err := a.client.request(ctx, http.MethodGet, "/assets/automation", nil, &overview)
+	return &overview, err
+}

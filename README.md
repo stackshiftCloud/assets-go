@@ -358,6 +358,78 @@ valid := stackshift.VerifyWebhookSignature(stackshift.MailWebhookSignatureInput{
 
 Webhook handlers should be idempotent. StackShift retries non-2xx responses. Delivery events do not include full email bodies or OTP codes by default.
 
+## Platform events
+
+Every StackShift event reaches your endpoint signed with `StackShift-Signature`. `Events.Verify` checks the signature in constant time, refuses timestamps older than five minutes (set `Tolerance` to change that) and returns the parsed event. Failures are `*stackshift.EventSignatureError` with a `Code` of `missing_signature`, `invalid_signature`, `expired` or `invalid_body`:
+
+```go
+body, _ := io.ReadAll(r.Body)
+event, err := client.Events.Verify(stackshift.VerifyEventInput{
+	RawBody:         body,
+	SignatureHeader: r.Header.Get("StackShift-Signature"),
+	Secret:          os.Getenv("STACKSHIFT_WEBHOOK_SECRET"),
+})
+if err != nil {
+	http.Error(w, err.Error(), http.StatusBadRequest)
+	return
+}
+log.Println(event.Type, event.Subject.ID)
+```
+
+`Events` also wraps the API: `Catalog`, `List`, `Get`, the subscription calls (`CreateSubscription`, `ListSubscriptions`, `UpdateSubscription`, `DeleteSubscription`), the rule calls (`CreateRule`, `ListRules`, `UpdateRule`, `DeleteRule`, `PreviewRule`, `TestRule`) and `ListDeliveries` / `ReplayDelivery`.
+
+A Function that a rule sends events to wraps its handler with `stackshift.OnEvent`. Patterns can be exact (`deploy.failed`), a prefix (`storage.object.*`) or a suffix (`*.failed`); other events and other queues are ignored:
+
+```go
+handle := stackshift.OnEvent("storage.object.*", func(ctx context.Context, event stackshift.Event) error {
+	log.Println(event.Type, string(event.Data))
+	return nil
+})
+err := handle(ctx, stackshift.EventInvocation{TriggerType: "queue", QueueName: "_events", Payload: payload})
+```
+
+## Automations
+
+An automation is a trigger (by hand, an event, a schedule or a webhook) followed by steps. `Automations` creates, saves and runs them, and works through their runs:
+
+```go
+automation, err := client.Automations.Create(ctx, stackshift.CreateAutomationInput{TeamID: "team_123", Name: "Redeploy on failure"})
+if err != nil {
+	return err
+}
+_, err = client.Automations.Save(ctx, automation.ID, stackshift.SaveAutomationInput{
+	Name:             automation.Name,
+	ExpectedRevision: automation.Revision,
+	Definition: stackshift.AutomationDefinition{
+		Version: 1,
+		Nodes: []stackshift.AutomationNode{
+			{ID: "trigger", Type: "trigger.event", Config: json.RawMessage(`{"event_types":["deploy.failed"]}`)},
+			{ID: "redeploy", Type: "platform.action", Action: "projects.redeploy", Config: json.RawMessage(`{"project_id":"proj_123"}`)},
+			{ID: "success", Type: "control.success"},
+		},
+		Edges: []stackshift.AutomationEdge{
+			{ID: "trigger-redeploy", Source: "trigger", Target: "redeploy"},
+			{ID: "redeploy-success", Source: "redeploy", SourcePort: "success", Target: "success"},
+		},
+	},
+})
+if err != nil {
+	return err
+}
+if _, err := client.Automations.Enable(ctx, automation.ID); err != nil {
+	return err
+}
+run, err := client.Automations.StartRun(ctx, automation.ID, stackshift.StartAutomationRunInput{Test: true})
+if err != nil {
+	return err
+}
+detail, err := client.Automations.GetRun(ctx, run.ID)
+```
+
+A save that breaks a rule fails with `*stackshift.APIError` code `automation_invalid`; `Details["issues"]` names each problem and its `node_id`. `Actions` lists the platform actions a step can run and the step types, `Templates` lists starting points, and `PreviewTrigger` counts the events a trigger would have matched in the last 30 days.
+
+`Automations` also has `List`, `Get`, `Delete`, `Disable`, `SetAccess`, `PutSecret` / `DeleteSecret`, `RotateWebhook`, `RerunFailed`, and for runs `ListRuns`, `CancelRun`, `Rerun` and `Decide` (`approved` or `denied`, with `ConfirmName` for destructive steps).
+
 ## Send a template
 
 Templates are rendered by StackShift servers. The Go SDK only calls the REST API.
